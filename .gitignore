@@ -1,0 +1,11 @@
+.env
+conf/token.txt
+accountinfo.txt
+accouninfo.txt
+.venv/
+data/
+output/
+*.pyc
+__pycache__/
+.pytest_cache/
+.coverage
