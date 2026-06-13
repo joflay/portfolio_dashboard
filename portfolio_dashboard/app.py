@@ -11,6 +11,7 @@ from . import DEFAULT_STRATEGY
 from .analytics import build_performance
 from .config import load_settings
 from .db import Database
+from .risk_free import load_risk_free_rates
 from .sync import cache_prices, run_sync
 
 
@@ -33,6 +34,7 @@ def health() -> dict[str, Any]:
         "strategy": DEFAULT_STRATEGY,
         "database": str(settings.database_path),
         "market_data_dir": str(settings.market_data_dir),
+        "risk_free_rate_file": str(settings.risk_free_rate_file),
         "last_sync": db.get_metadata("last_sync"),
     }
 
@@ -66,13 +68,14 @@ async def _periodic_sync() -> None:
 def _performance() -> dict[str, Any]:
     db.initialize()
     positions = db.fetch_positions(DEFAULT_STRATEGY)
-    orders = db.fetch_orders(DEFAULT_STRATEGY)
+    orders = db.fetch_orders(DEFAULT_STRATEGY, settings.strategy_start_date)
     symbols = {row["symbol"] for row in positions if row["symbol"]}
     symbols.update(row["symbol"] for row in orders if row["symbol"])
     if symbols:
         cache_prices(db, settings, symbols)
-    prices = db.fetch_price_rows(symbols)
-    return build_performance(positions, orders, prices)
+    prices = db.fetch_price_rows(symbols, settings.strategy_start_date)
+    risk_free_rates = load_risk_free_rates(settings.risk_free_rate_file)
+    return build_performance(positions, orders, prices, risk_free_rates)
 
 
 def _render_dashboard(data: dict[str, Any], summary: dict[str, Any], last_sync: Any) -> str:
@@ -181,6 +184,7 @@ def _render_dashboard(data: dict[str, Any], summary: dict[str, Any], last_sync: 
     <div>
       <h1>Vol_Factor</h1>
       <p>Strategy performance from Webull activity and local market marks.</p>
+      <p>Start date: {escape(settings.strategy_start_date)}</p>
       <p>Last sync: {escape(str(last_sync or "not run"))}</p>
     </div>
     <form method="post" action="/sync"><button type="submit">Refresh</button></form>
@@ -192,6 +196,7 @@ def _render_dashboard(data: dict[str, Any], summary: dict[str, Any], last_sync: 
       {_metric("Total PnL", _money(summary["total_pnl"]), summary["total_pnl"] < 0)}
       {_metric("Max Drawdown", _pct(summary["max_drawdown"]), True)}
       {_metric("Sharpe", f'{summary["sharpe"]:.2f}')}
+      {_metric("Risk-Free", _pct(summary.get("risk_free_rate")))}
       {_metric("Trades", str(summary["trade_count"]))}
     </div>
     <div class="grid">

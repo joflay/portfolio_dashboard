@@ -236,23 +236,34 @@ class Database:
                 )
             )
 
-    def fetch_orders(self, strategy: str) -> list[sqlite3.Row]:
+    def fetch_orders(self, strategy: str, start_date: str | None = None) -> list[sqlite3.Row]:
+        params: list[str] = [strategy]
+        date_filter = ""
+        if start_date:
+            date_filter = "AND (placed_at IS NULL OR placed_at >= ?)"
+            params.append(start_date)
         with self.connect() as conn:
             return list(
                 conn.execute(
-                    """
+                    f"""
                     SELECT * FROM orders
                     WHERE strategy = ?
+                    {date_filter}
                     ORDER BY placed_at DESC, order_id DESC
                     """,
-                    (strategy,),
+                    params,
                 )
             )
 
-    def fetch_price_rows(self, symbols: Iterable[str]) -> list[sqlite3.Row]:
+    def fetch_price_rows(self, symbols: Iterable[str], start_date: str | None = None) -> list[sqlite3.Row]:
         symbol_list = sorted({s for s in symbols if s})
         if not symbol_list:
             return []
+        params: list[str] = list(symbol_list)
+        date_filter = ""
+        if start_date:
+            date_filter = "AND date >= ?"
+            params.append(start_date)
         placeholders = ",".join("?" for _ in symbol_list)
         with self.connect() as conn:
             return list(
@@ -261,9 +272,10 @@ class Database:
                     SELECT symbol, date, close
                     FROM prices
                     WHERE symbol IN ({placeholders})
+                    {date_filter}
                     ORDER BY date, symbol
                     """,
-                    symbol_list,
+                    params,
                 )
             )
 

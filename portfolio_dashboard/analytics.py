@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date
 from math import sqrt
 from sqlite3 import Row
 from typing import Any
+
+from .risk_free import latest_rate_on_or_before
 
 
 @dataclass(frozen=True)
@@ -22,6 +23,7 @@ def build_performance(
     positions: list[Row | dict[str, Any]],
     orders: list[Row | dict[str, Any]],
     price_rows: list[Row | dict[str, Any]],
+    risk_free_rates: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     holdings = [_row_dict(row) for row in positions]
     fills = _extract_fills(orders)
@@ -33,7 +35,8 @@ def build_performance(
         equity_curve = _equity_from_current_holdings(holdings, prices)
 
     daily = _daily_rows(equity_curve)
-    summary = _summary(daily, holdings, fills)
+    risk_free_rates = risk_free_rates or {}
+    summary = _summary(daily, holdings, fills, risk_free_rates)
     return {
         "strategy": "Vol_Factor",
         "summary": summary,
@@ -139,22 +142,40 @@ def _daily_rows(equity_curve: list[tuple[str, float]]) -> list[dict[str, float |
     return rows
 
 
-def _summary(daily: list[dict[str, Any]], holdings: list[dict[str, Any]], fills: list[Fill]) -> dict[str, Any]:
-    returns = [float(row["daily_return"]) for row in daily[1:] if row.get("daily_return") is not None]
+def _summary(
+    daily: list[dict[str, Any]],
+    holdings: list[dict[str, Any]],
+    fills: list[Fill],
+    risk_free_rates: dict[str, float],
+) -> dict[str, Any]:
+    excess_returns = _daily_excess_returns(daily, risk_free_rates)
     latest_equity = float(daily[-1]["equity"]) if daily else 0.0
     start_equity = float(daily[0]["equity"]) if daily else 0.0
     max_drawdown = min((float(row["drawdown"]) for row in daily), default=0.0)
+    latest_rf = latest_rate_on_or_before(risk_free_rates, str(daily[-1]["date"])) if daily else None
     return {
         "latest_equity": round(latest_equity, 2),
         "total_pnl": round(latest_equity - start_equity, 2) if daily else 0.0,
         "daily_pnl": round(float(daily[-1]["daily_pnl"]), 2) if daily else 0.0,
         "max_drawdown": round(max_drawdown, 6),
-        "sharpe": round(_sharpe(returns), 4),
+        "sharpe": round(_sharpe(excess_returns), 4),
+        "risk_free_rate": round(latest_rf, 6) if latest_rf is not None else None,
         "open_positions": len(holdings),
         "trade_count": len(fills),
         "history_start": daily[0]["date"] if daily else None,
         "history_end": daily[-1]["date"] if daily else None,
     }
+
+
+def _daily_excess_returns(daily: list[dict[str, Any]], risk_free_rates: dict[str, float]) -> list[float]:
+    excess: list[float] = []
+    for row in daily[1:]:
+        daily_return = row.get("daily_return")
+        if daily_return is None:
+            continue
+        annual_rate = latest_rate_on_or_before(risk_free_rates, str(row["date"])) or 0.0
+        excess.append(float(daily_return) - (annual_rate / 252))
+    return excess
 
 
 def _sharpe(daily_returns: list[float]) -> float:

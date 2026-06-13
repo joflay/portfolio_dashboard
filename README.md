@@ -18,7 +18,10 @@ Optional `.env` settings:
 DASHBOARD_HOST=127.0.0.1
 DASHBOARD_PORT=8080
 MARKET_DATA_DIR=/srv/data/stocks
+RISK_FREE_RATE_DIR=/srv/data/risk_free_rate
+RISK_FREE_RATE_FILE=/srv/data/risk_free_rate/DGS3MO_risk_free_rate.csv
 SYNC_INTERVAL_MINUTES=15
+STRATEGY_START_DATE=2026-06-12
 ```
 
 For Tailscale-only access, set `DASHBOARD_HOST` to the server's Tailscale IP or MagicDNS hostname target and run uvicorn with that host.

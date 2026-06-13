@@ -31,9 +31,12 @@ class Settings:
     data_dir: Path
     database_path: Path
     market_data_dir: Path
+    risk_free_rate_dir: Path
+    risk_free_rate_file: Path
     dashboard_host: str
     dashboard_port: int
     sync_interval_minutes: int
+    strategy_start_date: str
     account_info_file: Path
     account_list_path: str
     account_positions_path: str
@@ -56,9 +59,14 @@ def load_settings() -> Settings:
         data_dir=data_dir,
         database_path=Path(get("DATABASE_PATH", str(data_dir / "portfolio.db"))).expanduser(),
         market_data_dir=Path(get("MARKET_DATA_DIR", "/srv/data/stocks")).expanduser(),
+        risk_free_rate_dir=Path(get("RISK_FREE_RATE_DIR", "/srv/data/risk_free_rate")).expanduser(),
+        risk_free_rate_file=Path(
+            get("RISK_FREE_RATE_FILE", "/srv/data/risk_free_rate/DGS3MO_risk_free_rate.csv")
+        ).expanduser(),
         dashboard_host=get("DASHBOARD_HOST", "127.0.0.1"),
         dashboard_port=int(get("DASHBOARD_PORT", "8080")),
         sync_interval_minutes=int(get("SYNC_INTERVAL_MINUTES", "15")),
+        strategy_start_date=get("STRATEGY_START_DATE", "2026-06-12"),
         account_info_file=Path(get("WEBULL_ACCOUNT_INFO_FILE", str(BASE_DIR / "accouninfo.txt"))).expanduser(),
         account_list_path=get("WEBULL_ACCOUNT_LIST_PATH", "/openapi/account/list"),
         account_positions_path=get("WEBULL_ACCOUNT_POSITIONS_PATH", "/openapi/assets/positions"),

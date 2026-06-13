@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 import hashlib
 import hmac
 import json
@@ -30,13 +30,12 @@ class WebullClient:
     def order_history(self, account_id: str) -> list[dict[str, Any]]:
         path = self.settings.order_history_path.format(account_id=account_id)
         end = date.today()
-        start = end - timedelta(days=730)
         payload = self._request(
             "GET",
             path,
             {
                 "account_id": account_id,
-                "start_date": start.isoformat(),
+                "start_date": self.settings.strategy_start_date,
                 "end_date": end.isoformat(),
                 "page_size": "100",
             },
