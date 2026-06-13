@@ -1,2 +1,3 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
+webull-openapi-python-sdk>=2.0.0; python_version < "3.14"

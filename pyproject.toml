@@ -2,10 +2,11 @@
 name = "portfolio-dashboard"
 version = "0.1.0"
 description = "Strategy-focused Webull portfolio dashboard"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    "webull-openapi-python-sdk>=2.0.0",
 ]
 
 [project.optional-dependencies]

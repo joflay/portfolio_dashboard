@@ -5,7 +5,7 @@ FastAPI API plus Next.js frontend for tracking individual strategies inside a We
 ## Setup
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements-dev.txt
 cd frontend
@@ -13,7 +13,7 @@ npm install
 ```
 
 The app reads existing credentials from `.env` and `conf/token.txt`.
-Webull sync uses the official Webull SDK API used by `testscript.py`; install the SDK package that provides `webull.core.client.ApiClient` and `webull.trade.trade_client.TradeClient` in this virtualenv.
+Webull sync uses the official Webull SDK API used by `testscript.py`. The SDK currently supports Python 3.8 through 3.13, so do not use Python 3.14 for the dashboard virtualenv.
 
 Optional `.env` settings:
 
