@@ -7,7 +7,6 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 def _load_dotenv(path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
     if not path.exists():
@@ -38,9 +37,6 @@ class Settings:
     sync_interval_minutes: int
     strategy_start_date: str
     account_info_file: Path
-    account_list_path: str
-    account_positions_path: str
-    order_history_path: str
 
 
 def load_settings() -> Settings:
@@ -68,9 +64,6 @@ def load_settings() -> Settings:
         sync_interval_minutes=int(get("SYNC_INTERVAL_MINUTES", "15")),
         strategy_start_date=get("STRATEGY_START_DATE", "2026-06-12"),
         account_info_file=Path(get("WEBULL_ACCOUNT_INFO_FILE", str(BASE_DIR / "accouninfo.txt"))).expanduser(),
-        account_list_path=get("WEBULL_ACCOUNT_LIST_PATH", "/openapi/account/list"),
-        account_positions_path=get("WEBULL_ACCOUNT_POSITIONS_PATH", "/openapi/assets/positions"),
-        order_history_path=get("WEBULL_ORDER_HISTORY_PATH", "/openapi/trade/order/history"),
     )
 
 

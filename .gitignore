@@ -3,6 +3,9 @@ conf/token.txt
 accountinfo.txt
 accouninfo.txt
 .venv/
+frontend/.next/
+frontend/.npm-cache/
+frontend/node_modules/
 data/
 output/
 *.pyc

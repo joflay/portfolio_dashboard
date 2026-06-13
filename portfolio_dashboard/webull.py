@@ -1,15 +1,9 @@
 from __future__ import annotations
 
-import base64
-from datetime import UTC, date, datetime
-import hashlib
-import hmac
+from datetime import date
 import json
 from typing import Any
-from urllib.error import HTTPError
-from urllib.parse import quote, urlencode, urlparse
-from urllib.request import Request, urlopen
-import uuid
+from urllib.parse import urlparse
 
 from .config import Settings
 
@@ -17,113 +11,87 @@ from .config import Settings
 class WebullClient:
     def __init__(self, settings: Settings):
         self.settings = settings
+        self.trade_client = _build_trade_client(settings)
 
     def account_list(self) -> list[dict[str, Any]]:
-        payload = self._request("GET", self.settings.account_list_path)
-        return _list_payload(payload, "accounts", "data")
+        payload = self._call(self.trade_client.account_v2.get_account_list, "account list")
+        return _list_payload(payload, "accounts", "accountList", "list", "data", "result")
+
+    def account_assets(self, account_id: str) -> dict[str, Any]:
+        payload = self._call(
+            self.trade_client.account_v2.get_account_balance,
+            "account balance",
+            account_id=account_id,
+        )
+        if not isinstance(payload, dict):
+            raise RuntimeError("Webull SDK account balance returned a non-object payload")
+        return {"source_path": "sdk:account_v2.get_account_balance", "payload": payload}
 
     def positions(self, account_id: str) -> list[dict[str, Any]]:
-        path = self.settings.account_positions_path.format(account_id=account_id)
-        payload = self._request("GET", path, {"account_id": account_id})
-        return _list_payload(payload, "positions", "data")
+        account_v2 = self.trade_client.account_v2
+        method = getattr(account_v2, "get_account_position", None)
+        if method is None:
+            raise RuntimeError("Webull SDK account_v2.get_account_position is unavailable")
+        payload = self._call(method, "account positions", account_id=account_id)
+        return _list_payload(payload, "positions", "positionList", "list", "data", "result")
 
     def order_history(self, account_id: str) -> list[dict[str, Any]]:
-        path = self.settings.order_history_path.format(account_id=account_id)
-        end = date.today()
-        payload = self._request(
-            "GET",
-            path,
-            {
-                "account_id": account_id,
-                "start_date": self.settings.strategy_start_date,
-                "end_date": end.isoformat(),
-                "page_size": "100",
-            },
-        )
-        return _flatten_order_history(payload)
+        end = date.today().isoformat()
+        for namespace_name, method_name in (
+            ("order_v2", "get_order_history"),
+            ("order_v2", "get_orders"),
+            ("order", "get_order_history"),
+            ("order", "get_orders"),
+            ("trade_v2", "get_order_history"),
+            ("trade_v2", "get_orders"),
+        ):
+            namespace = getattr(self.trade_client, namespace_name, None)
+            method = getattr(namespace, method_name, None) if namespace is not None else None
+            if method is None:
+                continue
+            payload = self._call(
+                method,
+                f"{namespace_name}.{method_name}",
+                account_id=account_id,
+                start_date=self.settings.strategy_start_date,
+                end_date=end,
+                page_size=100,
+            )
+            return _flatten_order_history(payload)
+        raise RuntimeError("Webull SDK order history method is unavailable")
 
-    def _request(self, method: str, path: str, query: dict[str, Any] | None = None) -> Any:
-        query = query or {}
-        query_string = f"?{urlencode(query)}" if query else ""
-        url = f"{self.settings.endpoint}{path}{query_string}"
-        body = b""
-        headers = self._headers(path, query, None)
-        request = Request(url, data=body or None, method=method, headers=headers)
-        try:
-            with urlopen(request, timeout=30) as response:
-                raw = response.read().decode()
-        except HTTPError as exc:
-            detail = exc.read().decode(errors="replace")
-            raise RuntimeError(f"Webull API error {exc.code}: {detail}") from exc
-        return json.loads(raw) if raw else {}
-
-    def _headers(self, path: str, query: dict[str, Any], body_string: str | None) -> dict[str, str]:
-        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        nonce = uuid.uuid4().hex
-        token = self._read_token()
-        host = urlparse(self.settings.endpoint).netloc
-        signature = generate_signature(
-            path=path,
-            query_params=query,
-            body_string=body_string,
-            app_key=self.settings.app_key,
-            app_secret=self.settings.app_secret,
-            host=host,
-            timestamp=timestamp,
-            nonce=nonce,
-        )
-        return {
-            "Accept": "application/json",
-            "x-app-key": self.settings.app_key,
-            "x-timestamp": timestamp,
-            "x-signature": signature,
-            "x-signature-algorithm": "HMAC-SHA1",
-            "x-signature-version": "1.0",
-            "x-signature-nonce": nonce,
-            "x-version": "v2",
-            "x-access-token": token,
-        }
-
-    def _read_token(self) -> str:
-        if not self.settings.token_file.exists():
-            return ""
-        for line in self.settings.token_file.read_text().splitlines():
-            token = line.strip()
-            if token:
-                return token
-        return ""
+    @staticmethod
+    def _call(method: Any, label: str, **kwargs: Any) -> Any:
+        response = method(**kwargs)
+        payload = _response_json(response)
+        status = getattr(response, "status_code", None)
+        if status and int(status) != 200:
+            raise RuntimeError(f"Webull SDK {label} failed {status}: {json.dumps(payload)}")
+        return payload
 
 
-def generate_signature(
-    path: str,
-    query_params: dict[str, Any],
-    body_string: str | None,
-    app_key: str,
-    app_secret: str,
-    host: str,
-    timestamp: str,
-    nonce: str,
-) -> str:
-    signing_values = {
-        "host": host,
-        "x-app-key": app_key,
-        "x-signature-algorithm": "HMAC-SHA1",
-        "x-signature-nonce": nonce,
-        "x-signature-version": "1.0",
-        "x-timestamp": timestamp,
-    }
-    all_params = {str(key): str(value) for key, value in query_params.items()}
-    all_params.update(signing_values)
-    str1 = "&".join(f"{key}={all_params[key]}" for key in sorted(all_params))
-    if body_string:
-        body_hash = hashlib.md5(body_string.encode("utf-8")).hexdigest().upper()
-        str3 = f"{path}&{str1}&{body_hash}"
-    else:
-        str3 = f"{path}&{str1}"
-    encoded = quote(str3, safe="")
-    signing_key = f"{app_secret}&"
-    digest = hmac.new(signing_key.encode("utf-8"), encoded.encode("utf-8"), hashlib.sha1).digest()
-    return base64.b64encode(digest).decode("utf-8")
+def _build_trade_client(settings: Settings) -> Any:
+    try:
+        from webull.core.client import ApiClient
+        from webull.trade.trade_client import TradeClient
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "Webull SDK is not installed. Install the SDK package that provides "
+            "webull.core.client.ApiClient and webull.trade.trade_client.TradeClient."
+        ) from exc
+
+    region = str(settings.region or "us").lower()
+    endpoint = urlparse(settings.endpoint).netloc or settings.endpoint
+    api_client = ApiClient(settings.app_key, settings.app_secret, region)
+    api_client.add_endpoint(region, endpoint)
+    return TradeClient(api_client)
+
+
+def _response_json(response: Any) -> Any:
+    try:
+        return response.json()
+    except Exception:
+        return {"raw_text": getattr(response, "text", str(response))}
 
 
 def _list_payload(payload: Any, *keys: str) -> list[dict[str, Any]]:
@@ -143,7 +111,7 @@ def _list_payload(payload: Any, *keys: str) -> list[dict[str, Any]]:
 
 
 def _flatten_order_history(payload: Any) -> list[dict[str, Any]]:
-    rows = _list_payload(payload, "data", "items", "orders")
+    rows = _list_payload(payload, "data", "items", "orders", "list", "result")
     flattened: list[dict[str, Any]] = []
     for row in rows:
         child_orders = row.get("orders")

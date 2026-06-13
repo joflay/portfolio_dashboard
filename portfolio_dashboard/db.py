@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS accounts (
     updated_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS account_assets (
+    account_id TEXT PRIMARY KEY,
+    net_aum REAL,
+    raw_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS positions (
     strategy TEXT NOT NULL,
     account_id TEXT NOT NULL,
@@ -125,6 +132,39 @@ class Database:
                     (account_id, label, json.dumps(account), now),
                 )
 
+    def upsert_account_assets(self, account_id: str, assets: dict[str, Any]) -> None:
+        now = utc_now()
+        net_aum = _first_float(
+            assets,
+            "net_aum",
+            "netAum",
+            "net_liquidation",
+            "netLiquidation",
+            "netLiquidationValue",
+            "net_liquidation_value",
+            "total_net_liquidation_value",
+            "account_value",
+            "accountValue",
+            "total_equity",
+            "totalEquity",
+            "total_asset",
+            "totalAsset",
+            "portfolio_value",
+            "portfolioValue",
+        )
+        with self.connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO account_assets (account_id, net_aum, raw_json, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(account_id) DO UPDATE SET
+                    net_aum = excluded.net_aum,
+                    raw_json = excluded.raw_json,
+                    updated_at = excluded.updated_at
+                """,
+                (account_id, net_aum, json.dumps(assets), now),
+            )
+
     def upsert_positions(self, strategy: str, account_id: str, positions: Iterable[dict[str, Any]]) -> None:
         now = utc_now()
         seen: set[str] = set()
@@ -227,6 +267,10 @@ class Database:
         with self.connect() as conn:
             return list(conn.execute("SELECT * FROM accounts ORDER BY label"))
 
+    def fetch_account_assets(self) -> list[sqlite3.Row]:
+        with self.connect() as conn:
+            return list(conn.execute("SELECT * FROM account_assets ORDER BY account_id"))
+
     def fetch_positions(self, strategy: str) -> list[sqlite3.Row]:
         with self.connect() as conn:
             return list(
@@ -254,6 +298,18 @@ class Database:
                     params,
                 )
             )
+
+    def fetch_strategies(self) -> list[str]:
+        with self.connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT strategy FROM positions
+                UNION
+                SELECT strategy FROM orders
+                ORDER BY strategy
+                """
+            ).fetchall()
+        return [row["strategy"] for row in rows if row["strategy"]]
 
     def fetch_price_rows(self, symbols: Iterable[str], start_date: str | None = None) -> list[sqlite3.Row]:
         symbol_list = sorted({s for s in symbols if s})
@@ -303,6 +359,24 @@ def _float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _first_float(source: Any, *names: str) -> float | None:
+    if isinstance(source, dict):
+        for name in names:
+            parsed = _float(source.get(name))
+            if parsed is not None:
+                return parsed
+        for value in source.values():
+            nested = _first_float(value, *names)
+            if nested is not None:
+                return nested
+    elif isinstance(source, list):
+        for item in source:
+            nested = _first_float(item, *names)
+            if nested is not None:
+                return nested
+    return None
 
 
 def _side(value: Any) -> str:

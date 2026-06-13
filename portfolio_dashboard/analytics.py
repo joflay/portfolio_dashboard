@@ -24,6 +24,7 @@ def build_performance(
     orders: list[Row | dict[str, Any]],
     price_rows: list[Row | dict[str, Any]],
     risk_free_rates: dict[str, float] | None = None,
+    strategy: str = "Vol_Factor",
 ) -> dict[str, Any]:
     holdings = [_row_dict(row) for row in positions]
     fills = _extract_fills(orders)
@@ -35,14 +36,15 @@ def build_performance(
         equity_curve = _equity_from_current_holdings(holdings, prices)
 
     daily = _daily_rows(equity_curve)
+    marked_holdings = _holdings_with_marks(holdings, prices)
     risk_free_rates = risk_free_rates or {}
-    summary = _summary(daily, holdings, fills, risk_free_rates)
+    summary = _summary(daily, marked_holdings, fills, risk_free_rates)
     return {
-        "strategy": "Vol_Factor",
+        "strategy": strategy,
         "summary": summary,
         "equity_curve": daily,
         "drawdown_curve": [{"date": row["date"], "drawdown": row["drawdown"]} for row in daily],
-        "holdings": _holdings_with_marks(holdings, prices),
+        "holdings": marked_holdings,
         "trades": [_trade_dict(fill) for fill in sorted(fills, key=lambda f: f.date, reverse=True)],
     }
 
@@ -153,7 +155,10 @@ def _summary(
     start_equity = float(daily[0]["equity"]) if daily else 0.0
     max_drawdown = min((float(row["drawdown"]) for row in daily), default=0.0)
     latest_rf = latest_rate_on_or_before(risk_free_rates, str(daily[-1]["date"])) if daily else None
+    net_exposure = sum(float(row.get("market_value") or 0.0) for row in holdings)
     return {
+        "net_exposure": round(net_exposure, 2),
+        "net_aum": round(net_exposure, 2),
         "latest_equity": round(latest_equity, 2),
         "total_pnl": round(latest_equity - start_equity, 2) if daily else 0.0,
         "daily_pnl": round(float(daily[-1]["daily_pnl"]), 2) if daily else 0.0,

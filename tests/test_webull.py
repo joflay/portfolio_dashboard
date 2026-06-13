@@ -1,31 +1,106 @@
-from portfolio_dashboard.webull import WebullClient, _flatten_order_history, generate_signature
+import sys
+from types import ModuleType
+
+from portfolio_dashboard.webull import WebullClient, _build_trade_client, _flatten_order_history
 
 
 class _Settings:
-    def __init__(self, token_file):
-        self.token_file = token_file
+    app_key = "app-key"
+    app_secret = "app-secret"
+    region = "US"
+    endpoint = "https://api.webull.com"
+    strategy_start_date = "2026-06-12"
 
 
-def test_read_token_uses_first_non_empty_line(tmp_path) -> None:
-    token_file = tmp_path / "token.txt"
-    token_file.write_text("\naccess-token\n1782250690617\nNORMAL\n")
+class _FakeResponse:
+    status_code = 200
 
-    assert WebullClient(_Settings(token_file))._read_token() == "access-token"
+    def __init__(self, payload):
+        self.payload = payload
+
+    def json(self):
+        return self.payload
 
 
-def test_generate_signature_matches_webull_doc_example() -> None:
-    signature = generate_signature(
-        path="/trade/place_order",
-        query_params={"a1": "webull", "a2": "123", "a3": "xxx", "q1": "yyy"},
-        body_string='{"k1":123,"k2":"this is the api request body","k3":true,"k4":{"foo":[1,2]}}',
-        app_key="776da210ab4a452795d74e726ebd74b6",
-        app_secret="0f50a2e853334a9aae1a783bee120c1f",
-        host="api.webull.com",
-        timestamp="2022-01-04T03:55:31Z",
-        nonce="48ef5afed43d4d91ae514aaeafbc29ba",
-    )
+class _FakeAccountV2:
+    def get_account_list(self):
+        return _FakeResponse({"data": [{"account_id": "acct"}]})
 
-    assert signature == "kvlS6opdZDhEBo5jq40nHYXaLvM="
+    def get_account_balance(self, account_id):
+        return _FakeResponse({"total_net_liquidation_value": "3702.68", "account_id": account_id})
+
+    def get_account_position(self, account_id):
+        return _FakeResponse({"data": [{"symbol": "ABC", "quantity": "1", "account_id": account_id}]})
+
+
+class _FakeOrderV2:
+    def get_order_history(self, **kwargs):
+        return _FakeResponse({"data": [{"order_id": "order", "symbol": "ABC", **kwargs}]})
+
+
+class _FakeApiClient:
+    def __init__(self, app_key, app_secret, region):
+        self.args = (app_key, app_secret, region)
+        self.endpoint = None
+
+    def add_endpoint(self, region, endpoint):
+        self.endpoint = (region, endpoint)
+
+
+class _FakeTradeClient:
+    def __init__(self, api_client):
+        self.api_client = api_client
+        self.account_v2 = _FakeAccountV2()
+        self.order_v2 = _FakeOrderV2()
+
+
+def _install_fake_sdk(monkeypatch):
+    webull_module = ModuleType("webull")
+    core_module = ModuleType("webull.core")
+    client_module = ModuleType("webull.core.client")
+    trade_module = ModuleType("webull.trade")
+    trade_client_module = ModuleType("webull.trade.trade_client")
+    client_module.ApiClient = _FakeApiClient
+    trade_client_module.TradeClient = _FakeTradeClient
+
+    monkeypatch.setitem(sys.modules, "webull", webull_module)
+    monkeypatch.setitem(sys.modules, "webull.core", core_module)
+    monkeypatch.setitem(sys.modules, "webull.core.client", client_module)
+    monkeypatch.setitem(sys.modules, "webull.trade", trade_module)
+    monkeypatch.setitem(sys.modules, "webull.trade.trade_client", trade_client_module)
+
+
+def test_build_trade_client_uses_sdk_endpoint(monkeypatch) -> None:
+    _install_fake_sdk(monkeypatch)
+
+    trade_client = _build_trade_client(_Settings())
+
+    assert trade_client.api_client.args == ("app-key", "app-secret", "us")
+    assert trade_client.api_client.endpoint == ("us", "api.webull.com")
+
+
+def test_webull_client_uses_sdk_account_methods(monkeypatch) -> None:
+    _install_fake_sdk(monkeypatch)
+    client = WebullClient(_Settings())
+
+    assert client.account_list() == [{"account_id": "acct"}]
+    assert client.account_assets("acct") == {
+        "source_path": "sdk:account_v2.get_account_balance",
+        "payload": {"total_net_liquidation_value": "3702.68", "account_id": "acct"},
+    }
+    assert client.positions("acct") == [{"symbol": "ABC", "quantity": "1", "account_id": "acct"}]
+    assert client.order_history("acct")[0]["order_id"] == "order"
+
+
+def test_missing_sdk_fails_clearly(monkeypatch) -> None:
+    monkeypatch.setitem(sys.modules, "webull", None)
+
+    try:
+        WebullClient(_Settings())
+    except RuntimeError as exc:
+        assert "Webull SDK is not installed" in str(exc)
+    else:
+        raise AssertionError("WebullClient should require the SDK")
 
 
 def test_flatten_order_history_group_rows() -> None:

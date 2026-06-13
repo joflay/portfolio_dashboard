@@ -25,6 +25,8 @@ def test_strategy_performance_metrics_from_fills_and_marks() -> None:
 
     assert result["strategy"] == "Vol_Factor"
     assert result["summary"]["latest_equity"] == -10
+    assert result["summary"]["net_exposure"] == 90
+    assert result["summary"]["net_aum"] == 90
     assert result["summary"]["daily_pnl"] == -30
     assert result["summary"]["max_drawdown"] == -1.5
     assert result["summary"]["trade_count"] == 1

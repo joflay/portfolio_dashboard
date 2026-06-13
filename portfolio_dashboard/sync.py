@@ -15,10 +15,12 @@ from .webull import WebullClient
 class SyncResult:
     ok: bool
     accounts: int
+    account_assets: int
     positions: int
     orders: int
     prices: int
     error: str | None = None
+    warning: str | None = None
 
 
 def run_sync(settings: Settings | None = None) -> SyncResult:
@@ -35,11 +37,20 @@ def run_sync(settings: Settings | None = None) -> SyncResult:
         account_ids = [_account_id(account) for account in accounts]
 
         position_count = 0
+        account_asset_count = 0
         order_count = 0
+        warnings: list[str] = []
         symbols: set[str] = set()
         for account_id in account_ids:
             if not account_id:
                 continue
+            try:
+                assets = client.account_assets(account_id)
+                if assets:
+                    db.upsert_account_assets(account_id, assets)
+                    account_asset_count += 1
+            except Exception as exc:
+                warnings.append(f"account assets for {account_id}: {exc}")
             positions = client.positions(account_id)
             orders = client.order_history(account_id)
             db.upsert_positions(DEFAULT_STRATEGY, account_id, positions)
@@ -50,11 +61,19 @@ def run_sync(settings: Settings | None = None) -> SyncResult:
             symbols.update(_symbols(orders))
 
         price_count = cache_prices(db, settings, symbols)
-        result = SyncResult(True, len(accounts), position_count, order_count, price_count)
+        result = SyncResult(
+            True,
+            len(accounts),
+            account_asset_count,
+            position_count,
+            order_count,
+            price_count,
+            warning="; ".join(warnings) if warnings else None,
+        )
         db.set_metadata("last_sync", result.__dict__)
         return result
     except Exception as exc:
-        result = SyncResult(False, 0, 0, 0, 0, str(exc))
+        result = SyncResult(False, 0, 0, 0, 0, 0, str(exc))
         db.set_metadata("last_sync", result.__dict__)
         return result
 
@@ -110,9 +129,11 @@ def main() -> None:
         raise SystemExit(f"sync failed: {result.error}")
     print(
         "sync complete: "
-        f"{result.accounts} accounts, {result.positions} positions, "
+        f"{result.accounts} accounts, {result.account_assets} account asset snapshots, {result.positions} positions, "
         f"{result.orders} orders, {result.prices} prices"
     )
+    if result.warning:
+        print(f"sync note: {result.warning}")
 
 
 if __name__ == "__main__":

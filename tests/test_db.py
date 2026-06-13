@@ -24,6 +24,45 @@ def test_all_activity_defaults_to_vol_factor(tmp_path) -> None:
 
     assert db.fetch_positions("Vol_Factor")[0]["symbol"] == "ABC"
     assert db.fetch_orders("Vol_Factor")[0]["strategy"] == "Vol_Factor"
+    assert db.fetch_strategies() == ["Vol_Factor"]
+
+
+def test_account_assets_store_net_aum(tmp_path) -> None:
+    db = Database(tmp_path / "test.db")
+    db.initialize()
+
+    db.upsert_account_assets(
+        "acct",
+        {"data": {"netLiquidationValue": "1234.56", "cashBalance": "100.00"}},
+    )
+
+    row = db.fetch_account_assets()[0]
+    assert row["account_id"] == "acct"
+    assert row["net_aum"] == 1234.56
+
+
+def test_account_assets_store_webull_balance_net_aum(tmp_path) -> None:
+    db = Database(tmp_path / "test.db")
+    db.initialize()
+
+    db.upsert_account_assets(
+        "acct",
+        {
+            "source_path": "sdk:account_v2.get_account_balance",
+            "payload": {
+                "total_net_liquidation_value": "3702.68",
+                "total_market_value": "222.86",
+                "account_currency_assets": [
+                    {
+                        "currency": "USD",
+                        "net_liquidation_value": "3702.68",
+                    }
+                ],
+            },
+        },
+    )
+
+    assert db.fetch_account_assets()[0]["net_aum"] == 3702.68
 
 
 def test_load_local_account_info_file(tmp_path) -> None:

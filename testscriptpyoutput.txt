@@ -1,0 +1,65 @@
+(.venv) PS C:\Users\jo149\Documents\quant\schwab_hello> python positions.py                                         
+2284 2026-06-13 15:42:18,548 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
+2284 2026-06-13 15:42:18,561 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
+2284 2026-06-13 15:42:18,561 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:C:\Users\jo149\Documents\quant\schwab_hello\conf\token.txt.
+2284 2026-06-13 15:42:18,561 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:C:\Users\jo149\Documents\quant\schwab_hello\conf\token.txt.
+2284 2026-06-13 15:42:18,579 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
+2284 2026-06-13 15:42:18,582 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782672123945 status:NORMAL
+2284 2026-06-13 15:42:18,806 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782672123945 status:NORMAL
+2284 2026-06-13 15:42:18,807 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782672123945 status:NORMAL
+2284 2026-06-13 15:42:18,807 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782672123945 status:NORMAL
+2284 2026-06-13 15:42:18,807 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
+2284 2026-06-13 15:42:18,807 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782672123945 status:NORMAL
+
+===== Account List =====
+Status: 200
+
+================ ACCOUNT 1 ================
+Account object:
+{
+  "account_id": "J4HID41IGJVQ4KU95U56HOFM18",
+  "account_number": "CVS7UGD5",
+  "account_type": "MARGIN",
+  "account_label": "Individual Margin",
+  "account_class": "INDIVIDUAL_MARGIN",
+  "user_id": "1380099649"
+}
+Using account_id: J4HID41IGJVQ4KU95U56HOFM18
+
+===== Account Balance =====
+Status: 200
+
+--- Cash / Buying Power Summary ---
+{
+  "total_asset_currency": "USD",
+  "total_net_liquidation_value": "3702.68",
+  "total_market_value": "222.86",
+  "total_cash_balance": "3479.82",
+  "total_unrealized_profit_loss": "1.87",
+  "total_day_profit_loss": "0.00",
+  "day_trades_left": "UNLIMITED",
+  "maintenance_margin": "256.75",
+  "open_margin_calls": [],
+  "account_currency_assets": [
+    {
+      "currency": "USD",
+      "net_liquidation_value": "3702.68",
+      "market_value": "222.86",
+      "cash_balance": "3479.82",
+      "option_buying_power": "3322.27",
+      "day_buying_power": "13893.06",
+      "overnight_buying_power": "6644.54",
+      "night_trading_buying_power": "2885.80",
+      "unrealized_profit_loss": "1.87",
+      "day_profit_loss": "0.00"
+    }
+  ]
+}
+Traceback (most recent call last):
+  File "C:\Users\jo149\Documents\quant\schwab_hello\positions.py", line 217, in <module>
+    main()
+  File "C:\Users\jo149\Documents\quant\schwab_hello\positions.py", line 211, in main
+    positions_response = trade_client.account_v2.get_account_positions(account_id=account_id)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'AccountV2' object has no attribute 'get_account_positions'. Did you mean: 'get_account_position'?
+(.venv) PS C:\Users\jo149\Documents\quant\schwab_hello> 
