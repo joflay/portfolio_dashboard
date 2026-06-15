@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import date
 import json
 from typing import Any
 
@@ -13,11 +14,13 @@ from .config import load_settings
 from .db import Database
 from .risk_free import load_risk_free_rates
 from .sync import cache_prices, run_sync
+from .webull import WebullClient
 
 
 settings = load_settings()
 db = Database(settings.database_path)
 app = FastAPI(title="Portfolio Strategy Dashboard API")
+BENCHMARK_SYMBOL = "SPY"
 
 app.add_middleware(
     CORSMiddleware,
@@ -106,11 +109,25 @@ def _performance(strategy: str) -> dict[str, Any]:
     orders = db.fetch_orders(strategy, settings.strategy_start_date)
     symbols = {row["symbol"] for row in positions if row["symbol"]}
     symbols.update(row["symbol"] for row in orders if row["symbol"])
-    if symbols:
-        cache_prices(db, settings, symbols)
-    prices = db.fetch_price_rows(symbols, settings.strategy_start_date)
+    price_symbols = symbols | {BENCHMARK_SYMBOL}
+    if price_symbols:
+        cache_prices(db, settings, price_symbols)
+    prices = [dict(row) for row in db.fetch_price_rows(price_symbols, settings.strategy_start_date)]
+    prices.extend(_live_price_rows(price_symbols))
     risk_free_rates = load_risk_free_rates(settings.risk_free_rate_file)
     return build_performance(positions, orders, prices, risk_free_rates, strategy=strategy)
+
+
+def _live_price_rows(symbols: set[str]) -> list[dict[str, Any]]:
+    try:
+        quotes = WebullClient(settings).latest_quotes(symbols)
+    except Exception:
+        return []
+    today = date.today().isoformat()
+    return [
+        {"symbol": symbol, "date": today, "close": price, "source": "sdk:webull.latest_quotes"}
+        for symbol, price in sorted(quotes.items())
+    ]
 
 
 def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], account_assets: list[Any]) -> dict[str, Any]:
@@ -122,13 +139,33 @@ def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], acco
         account_net_aum_values = [_account_net_aum(account) for account in accounts]
     account_net_aum_values = [value for value in account_net_aum_values if value is not None]
     net_exposure = round(sum(float(summary.get("net_exposure") or summary.get("net_aum") or 0.0) for summary in summaries), 2)
+    gross_exposure = round(sum(float(summary.get("gross_exposure") or 0.0) for summary in summaries), 2)
+    daily_pnl = round(sum(float(summary.get("daily_pnl") or 0.0) for summary in summaries), 2)
+    total_pnl = round(sum(float(summary.get("total_pnl") or 0.0) for summary in summaries), 2)
+    net_aum = round(sum(account_net_aum_values), 2) if account_net_aum_values else None
+    return_baseline = net_aum if net_aum not in (None, 0.0) else gross_exposure
+    daily_return = _exposure_return(daily_pnl, return_baseline)
+    total_return = _exposure_return(total_pnl, return_baseline)
+    spy_daily_return = _first_summary_float(summaries, "spy_daily_return")
+    spy_total_return = _first_summary_float(summaries, "spy_total_return")
     return {
-        "net_aum": round(sum(account_net_aum_values), 2) if account_net_aum_values else None,
+        "net_aum": net_aum,
         "net_aum_in_db": bool(account_net_aum_values),
         "net_exposure": net_exposure,
+        "gross_exposure": gross_exposure,
         "latest_equity": round(sum(float(summary.get("latest_equity") or 0.0) for summary in summaries), 2),
-        "daily_pnl": round(sum(float(summary.get("daily_pnl") or 0.0) for summary in summaries), 2),
-        "total_pnl": round(sum(float(summary.get("total_pnl") or 0.0) for summary in summaries), 2),
+        "daily_pnl": daily_pnl,
+        "total_pnl": total_pnl,
+        "daily_return": round(daily_return, 8),
+        "total_return": round(total_return, 8),
+        "spy_daily_return": round(spy_daily_return, 8) if spy_daily_return is not None else None,
+        "spy_total_return": round(spy_total_return, 8) if spy_total_return is not None else None,
+        "daily_return_over_spy": (
+            round(daily_return - spy_daily_return, 8) if spy_daily_return is not None else None
+        ),
+        "total_return_over_spy": (
+            round(total_return - spy_total_return, 8) if spy_total_return is not None else None
+        ),
         "max_drawdown": min((float(summary.get("max_drawdown") or 0.0) for summary in summaries), default=0.0),
         "open_positions": sum(int(summary.get("open_positions") or 0) for summary in summaries),
         "trade_count": sum(int(summary.get("trade_count") or 0) for summary in summaries),
@@ -138,6 +175,18 @@ def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], acco
         "history_start": min(history_starts) if history_starts else None,
         "history_end": max(history_ends) if history_ends else None,
     }
+
+
+def _exposure_return(pnl: float, gross_exposure: float) -> float:
+    return 0.0 if gross_exposure == 0 else pnl / gross_exposure
+
+
+def _first_summary_float(summaries: list[dict[str, Any]], key: str) -> float | None:
+    for summary in summaries:
+        value = _float(summary.get(key))
+        if value is not None:
+            return value
+    return None
 
 
 def _asset_net_aum(asset: Any) -> float | None:

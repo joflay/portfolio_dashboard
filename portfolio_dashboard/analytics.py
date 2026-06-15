@@ -38,7 +38,7 @@ def build_performance(
     daily = _daily_rows(equity_curve)
     marked_holdings = _holdings_with_marks(holdings, prices)
     risk_free_rates = risk_free_rates or {}
-    summary = _summary(daily, marked_holdings, fills, risk_free_rates)
+    summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices)
     return {
         "strategy": strategy,
         "summary": summary,
@@ -149,6 +149,7 @@ def _summary(
     holdings: list[dict[str, Any]],
     fills: list[Fill],
     risk_free_rates: dict[str, float],
+    prices: dict[str, dict[str, float]],
 ) -> dict[str, Any]:
     excess_returns = _daily_excess_returns(daily, risk_free_rates)
     latest_equity = float(daily[-1]["equity"]) if daily else 0.0
@@ -156,12 +157,32 @@ def _summary(
     max_drawdown = min((float(row["drawdown"]) for row in daily), default=0.0)
     latest_rf = latest_rate_on_or_before(risk_free_rates, str(daily[-1]["date"])) if daily else None
     net_exposure = sum(float(row.get("market_value") or 0.0) for row in holdings)
+    gross_exposure = sum(abs(float(row.get("market_value") or 0.0)) for row in holdings)
+    total_pnl = latest_equity - start_equity if daily else 0.0
+    daily_pnl = float(daily[-1]["daily_pnl"]) if daily else 0.0
+    daily_return = _exposure_return(daily_pnl, gross_exposure)
+    total_return = _exposure_return(total_pnl, gross_exposure)
+    spy_daily_return = _symbol_daily_return(prices, "SPY")
+    spy_total_return = (
+        _symbol_return(prices, "SPY", str(daily[0]["date"]), str(daily[-1]["date"])) if daily else None
+    )
     return {
         "net_exposure": round(net_exposure, 2),
+        "gross_exposure": round(gross_exposure, 2),
         "net_aum": round(net_exposure, 2),
         "latest_equity": round(latest_equity, 2),
-        "total_pnl": round(latest_equity - start_equity, 2) if daily else 0.0,
-        "daily_pnl": round(float(daily[-1]["daily_pnl"]), 2) if daily else 0.0,
+        "total_pnl": round(total_pnl, 2),
+        "daily_pnl": round(daily_pnl, 2),
+        "total_return": round(total_return, 8),
+        "daily_return": round(daily_return, 8),
+        "spy_daily_return": round(spy_daily_return, 8) if spy_daily_return is not None else None,
+        "spy_total_return": round(spy_total_return, 8) if spy_total_return is not None else None,
+        "daily_return_over_spy": (
+            round(daily_return - spy_daily_return, 8) if spy_daily_return is not None else None
+        ),
+        "total_return_over_spy": (
+            round(total_return - spy_total_return, 8) if spy_total_return is not None else None
+        ),
         "max_drawdown": round(max_drawdown, 6),
         "sharpe": round(_sharpe(excess_returns), 4),
         "risk_free_rate": round(latest_rf, 6) if latest_rf is not None else None,
@@ -170,6 +191,28 @@ def _summary(
         "history_start": daily[0]["date"] if daily else None,
         "history_end": daily[-1]["date"] if daily else None,
     }
+
+
+def _exposure_return(pnl: float, gross_exposure: float) -> float:
+    return 0.0 if gross_exposure == 0 else pnl / gross_exposure
+
+
+def _symbol_daily_return(prices: dict[str, dict[str, float]], symbol: str) -> float | None:
+    closes = [marks[symbol] for marks in prices.values() if symbol in marks]
+    if len(closes) < 2:
+        return None
+    previous = closes[-2]
+    latest = closes[-1]
+    return None if previous == 0 else (latest - previous) / abs(previous)
+
+
+def _symbol_return(prices: dict[str, dict[str, float]], symbol: str, start_date: str, end_date: str) -> float | None:
+    closes = [marks[symbol] for day, marks in prices.items() if start_date <= day <= end_date and symbol in marks]
+    if len(closes) < 2:
+        return None
+    first = closes[0]
+    latest = closes[-1]
+    return None if first == 0 else (latest - first) / abs(first)
 
 
 def _daily_excess_returns(daily: list[dict[str, Any]], risk_free_rates: dict[str, float]) -> list[float]:
@@ -207,17 +250,26 @@ def _holdings_with_marks(
         qty = _float(holding.get("quantity")) or 0.0
         marked = latest_by_symbol.get(symbol)
         mark = marked[1] if marked else _float(holding.get("avg_price")) or 0.0
+        avg_price = _float(holding.get("avg_price"))
         output.append(
             {
                 "symbol": symbol,
                 "quantity": qty,
-                "avg_price": _float(holding.get("avg_price")),
+                "avg_price": avg_price,
                 "market_value": round(qty * mark, 2),
                 "last_price": mark,
+                "return": _holding_return(qty, avg_price, mark),
                 "price_date": marked[0] if marked else None,
             }
         )
     return output
+
+
+def _holding_return(quantity: float, avg_price: float | None, mark: float) -> float | None:
+    if avg_price in (None, 0.0):
+        return None
+    direction = 1 if quantity >= 0 else -1
+    return round(((mark - avg_price) / abs(avg_price)) * direction, 8)
 
 
 def _trade_dict(fill: Fill) -> dict[str, Any]:

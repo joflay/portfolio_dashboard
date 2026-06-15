@@ -38,6 +38,30 @@ class _FakeOrderV2:
         return _FakeResponse({"data": [{"order_id": "order", "symbol": "ABC", **kwargs}]})
 
 
+class _FakeMarketDataV2:
+    def get_quotes(self, symbols):
+        return _FakeResponse(
+            {
+                "data": [
+                    {"symbol": "ABC", "lastPrice": "12.34"},
+                    {"symbol": "XYZ", "lastPrice": 56.78},
+                ]
+            }
+        )
+
+
+class _FakeMarketData:
+    def get_snapshot(self, symbols, category, extend_hour_required=None):
+        return _FakeResponse({"data": []})
+
+    def get_quotes(self, symbol, category):
+        prices = {
+            "ABC": {"bids": [{"price": "12.32"}], "asks": [{"price": "12.36"}], "symbol": "ABC"},
+            "XYZ": {"bids": [{"price": "56.76"}], "asks": [{"price": "56.80"}], "symbol": "XYZ"},
+        }
+        return _FakeResponse(prices[symbol])
+
+
 class _FakeApiClient:
     def __init__(self, app_key, app_secret, region):
         self.args = (app_key, app_secret, region)
@@ -52,20 +76,32 @@ class _FakeTradeClient:
         self.api_client = api_client
         self.account_v2 = _FakeAccountV2()
         self.order_v2 = _FakeOrderV2()
+        self.market_data_v2 = _FakeMarketDataV2()
+
+
+class _FakeDataClient:
+    def __init__(self, api_client):
+        self.api_client = api_client
+        self.market_data = _FakeMarketData()
 
 
 def _install_fake_sdk(monkeypatch):
     webull_module = ModuleType("webull")
     core_module = ModuleType("webull.core")
     client_module = ModuleType("webull.core.client")
+    data_module = ModuleType("webull.data")
+    data_client_module = ModuleType("webull.data.data_client")
     trade_module = ModuleType("webull.trade")
     trade_client_module = ModuleType("webull.trade.trade_client")
     client_module.ApiClient = _FakeApiClient
+    data_client_module.DataClient = _FakeDataClient
     trade_client_module.TradeClient = _FakeTradeClient
 
     monkeypatch.setitem(sys.modules, "webull", webull_module)
     monkeypatch.setitem(sys.modules, "webull.core", core_module)
     monkeypatch.setitem(sys.modules, "webull.core.client", client_module)
+    monkeypatch.setitem(sys.modules, "webull.data", data_module)
+    monkeypatch.setitem(sys.modules, "webull.data.data_client", data_client_module)
     monkeypatch.setitem(sys.modules, "webull.trade", trade_module)
     monkeypatch.setitem(sys.modules, "webull.trade.trade_client", trade_client_module)
 
@@ -90,6 +126,13 @@ def test_webull_client_uses_sdk_account_methods(monkeypatch) -> None:
     }
     assert client.positions("acct") == [{"symbol": "ABC", "quantity": "1", "account_id": "acct"}]
     assert client.order_history("acct")[0]["order_id"] == "order"
+
+
+def test_webull_client_fetches_latest_quotes(monkeypatch) -> None:
+    _install_fake_sdk(monkeypatch)
+    client = WebullClient(_Settings())
+
+    assert client.latest_quotes({"abc", "XYZ"}) == {"ABC": 12.34, "XYZ": 56.78}
 
 
 def test_missing_sdk_fails_clearly(monkeypatch) -> None:

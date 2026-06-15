@@ -38,7 +38,7 @@ chmod +x scripts/dev_dashboard.sh
 python -m pytest
 ```
 
-`scripts/dev_dashboard.sh` starts at `DASHBOARD_PORT=8080` and `FRONTEND_PORT=5050`, then scans upward if either port is already in use. Override the defaults when needed:
+`scripts/dev_dashboard.sh` starts at `DASHBOARD_PORT=8080` and `FRONTEND_PORT=5050`, then scans upward if either port is already in use. The FastAPI backend auto-reloads on code changes by default; set `DASHBOARD_RELOAD=0` to disable it. Override the defaults when needed:
 
 ```bash
 DASHBOARD_HOST=100.68.111.84 DASHBOARD_PORT=8090 FRONTEND_PORT=5051 ./scripts/dev_dashboard.sh

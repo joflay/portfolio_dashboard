@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 DASHBOARD_HOST="${DASHBOARD_HOST:-100.68.111.84}"
 DASHBOARD_PORT="${DASHBOARD_PORT:-8080}"
+DASHBOARD_RELOAD="${DASHBOARD_RELOAD:-1}"
 FRONTEND_HOST="${FRONTEND_HOST:-$DASHBOARD_HOST}"
 FRONTEND_PORT="${FRONTEND_PORT:-5050}"
 
@@ -74,10 +75,16 @@ cleanup() {
 
 trap cleanup INT TERM EXIT
 
+API_RELOAD_ARGS=()
+if [[ "$DASHBOARD_RELOAD" != "0" ]]; then
+  API_RELOAD_ARGS=(--reload --reload-dir "$ROOT_DIR/portfolio_dashboard")
+fi
+
 echo "Starting FastAPI API on http://$DASHBOARD_HOST:$DASHBOARD_PORT"
 ".venv/bin/uvicorn" portfolio_dashboard.app:app \
   --host "$DASHBOARD_HOST" \
-  --port "$DASHBOARD_PORT" &
+  --port "$DASHBOARD_PORT" \
+  "${API_RELOAD_ARGS[@]}" &
 API_PID=$!
 
 echo "Starting Next.js frontend on http://$FRONTEND_HOST:$FRONTEND_PORT"
