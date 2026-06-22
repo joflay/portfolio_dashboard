@@ -202,14 +202,24 @@ function HomeTab({ account, strategies }: { account: AccountSummary; strategies:
         <Metric label="Account Net AUM" value={account.net_aum_in_db ? money(account.net_aum) : "Not in DB"} />
         <Metric label="Strategy Net Exposure" value={money(account.net_exposure)} />
         <Metric label="Gross Exposure" value={money(account.gross_exposure)} />
-        <Metric label="Strategy PnL" value={money(account.latest_equity)} negative={account.latest_equity < 0} />
-        <Metric label="Daily PnL" value={money(account.daily_pnl)} negative={account.daily_pnl < 0} />
-        <Metric label="Daily Return" value={percent(account.daily_return)} negative={account.daily_return < 0} />
-        <Metric label="Daily vs SPY" value={percent(account.daily_return_over_spy)} negative={(account.daily_return_over_spy || 0) < 0} />
-        <Metric label="Total PnL" value={money(account.total_pnl)} negative={account.total_pnl < 0} />
-        <Metric label="Total Return" value={percent(account.total_return)} negative={account.total_return < 0} />
-        <Metric label="Total vs SPY" value={percent(account.total_return_over_spy)} negative={(account.total_return_over_spy || 0) < 0} />
-        <Metric label="Max Drawdown" value={percent(account.max_drawdown)} negative={account.max_drawdown < 0} />
+        <Metric label="Strategy PnL" value={money(account.latest_equity)} positive={account.latest_equity > 0} negative={account.latest_equity < 0} />
+        <Metric label="Daily PnL" value={money(account.daily_pnl)} positive={account.daily_pnl > 0} negative={account.daily_pnl < 0} />
+        <Metric label="Daily Return" value={percent(account.daily_return)} positive={account.daily_return > 0} negative={account.daily_return < 0} />
+        <Metric
+          label="Daily vs S&P 500"
+          value={signedPercent(account.daily_return_over_spy)}
+          positive={(account.daily_return_over_spy || 0) > 0}
+          negative={(account.daily_return_over_spy || 0) < 0}
+        />
+        <Metric label="Total PnL" value={money(account.total_pnl)} positive={account.total_pnl > 0} negative={account.total_pnl < 0} />
+        <Metric label="Total Return" value={percent(account.total_return)} positive={account.total_return > 0} negative={account.total_return < 0} />
+        <Metric
+          label="Total vs S&P 500"
+          value={signedPercent(account.total_return_over_spy)}
+          positive={(account.total_return_over_spy || 0) > 0}
+          negative={(account.total_return_over_spy || 0) < 0}
+        />
+        <Metric label="Max Drawdown" value={percent(account.max_drawdown)} />
         <Metric label="Accounts" value={String(account.account_count)} />
         <Metric label="Open Positions" value={String(account.open_positions)} />
         <Metric label="Strategies" value={String(account.strategy_count)} />
@@ -229,19 +239,46 @@ function StrategyTab({ data }: { data: Performance }) {
 
   return (
     <>
-      <div className="metrics">
-        <Metric label="Strategy Net Exposure" value={money(summary.net_exposure)} />
-        <Metric label="Gross Exposure" value={money(summary.gross_exposure)} />
-        <Metric label="Strategy PnL" value={money(summary.latest_equity)} negative={summary.latest_equity < 0} />
-        <Metric label="Daily PnL" value={money(summary.daily_pnl)} negative={summary.daily_pnl < 0} />
-        <Metric label="Daily Return" value={percent(summary.daily_return)} negative={summary.daily_return < 0} />
-        <Metric label="Daily vs SPY" value={percent(summary.daily_return_over_spy)} negative={(summary.daily_return_over_spy || 0) < 0} />
-        <Metric label="Total PnL" value={money(summary.total_pnl)} negative={summary.total_pnl < 0} />
-        <Metric label="Total Return" value={percent(summary.total_return)} negative={summary.total_return < 0} />
-        <Metric label="Total vs SPY" value={percent(summary.total_return_over_spy)} negative={(summary.total_return_over_spy || 0) < 0} />
-        <Metric label="Max Drawdown" value={percent(summary.max_drawdown)} negative={summary.max_drawdown < 0} />
-        <Metric label="Sharpe" value={summary.sharpe.toFixed(2)} />
-        <Metric label="Open Positions" value={String(summary.open_positions)} />
+      <div className="strategy-metric-groups">
+        <section className="metric-group metric-group-performance" aria-label="Performance metrics">
+          <h2>Performance</h2>
+          <div className="metrics performance-metrics">
+            <Metric label="Strategy PnL" value={money(summary.latest_equity)} positive={summary.latest_equity > 0} negative={summary.latest_equity < 0} featured />
+            <Metric label="Daily PnL" value={money(summary.daily_pnl)} positive={summary.daily_pnl > 0} negative={summary.daily_pnl < 0} featured />
+            <Metric label="Total PnL" value={money(summary.total_pnl)} positive={summary.total_pnl > 0} negative={summary.total_pnl < 0} featured />
+            <Metric label="Daily Return" value={percent(summary.daily_return)} positive={summary.daily_return > 0} negative={summary.daily_return < 0} />
+            <Metric label="Total Return" value={percent(summary.total_return)} positive={summary.total_return > 0} negative={summary.total_return < 0} />
+            <Metric label="Sharpe" value={summary.sharpe.toFixed(2)} positive={summary.sharpe > 0} negative={summary.sharpe < 0} />
+          </div>
+        </section>
+
+        <section className="metric-group" aria-label="Exposure and risk metrics">
+          <h2>Exposure & Risk</h2>
+          <div className="metrics support-metrics">
+            <Metric label="Net Exposure" value={money(summary.net_exposure)} />
+            <Metric label="Gross Exposure" value={money(summary.gross_exposure)} />
+            <Metric label="Max Drawdown" value={percent(summary.max_drawdown)} />
+          </div>
+        </section>
+
+        <section className="metric-group" aria-label="Benchmark and activity metrics">
+          <h2>Benchmark & Activity</h2>
+          <div className="metrics support-metrics">
+            <Metric label="Open Positions" value={String(summary.open_positions)} />
+            <Metric
+              label="Daily vs S&P 500"
+              value={signedPercent(summary.daily_return_over_spy)}
+              positive={(summary.daily_return_over_spy || 0) > 0}
+              negative={(summary.daily_return_over_spy || 0) < 0}
+            />
+            <Metric
+              label="Total vs S&P 500"
+              value={signedPercent(summary.total_return_over_spy)}
+              positive={(summary.total_return_over_spy || 0) > 0}
+              negative={(summary.total_return_over_spy || 0) < 0}
+            />
+          </div>
+        </section>
       </div>
 
       <div className="grid">
@@ -270,11 +307,27 @@ function StrategyTab({ data }: { data: Performance }) {
   );
 }
 
-function Metric({ label, value, negative = false }: { label: string; value: string; negative?: boolean }) {
+function Metric({
+  label,
+  value,
+  positive = false,
+  negative = false,
+  featured = false
+}: {
+  label: string;
+  value: string;
+  positive?: boolean;
+  negative?: boolean;
+  featured?: boolean;
+}) {
+  const tone = negative ? "metric-negative" : positive ? "metric-positive" : "";
+  const classes = ["metric", featured ? "metric-featured" : "", tone].filter(Boolean).join(" ");
+  const valueClass = negative ? "negative" : positive ? "positive" : "";
+
   return (
-    <div className="metric">
+    <div className={classes}>
       <span>{label}</span>
-      <strong className={negative ? "negative" : ""}>{value}</strong>
+      <strong className={valueClass}>{value}</strong>
     </div>
   );
 }
@@ -304,19 +357,19 @@ function EquityChart({ rows }: { rows: EquityRow[] }) {
   return (
     <div className="chart">
       <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Equity and drawdown chart">
-        <path d={`M${pad},${pad} L${pad},${height - pad} L${width - pad},${height - pad}`} fill="none" stroke="#d9e0e8" />
-        <path d={equityPath} fill="none" stroke="#0f766e" strokeWidth="2.5" />
-        <path d={drawdownPath} fill="none" stroke="#b42318" strokeWidth="1.8" />
-        <text x={pad + 8} y={pad + 14} fill="#657285" fontSize="12">
+        <path d={`M${pad},${pad} L${pad},${height - pad} L${width - pad},${height - pad}`} fill="none" stroke="var(--line)" />
+        <path d={equityPath} fill="none" stroke="var(--accent)" strokeWidth="2.5" />
+        <path d={drawdownPath} fill="none" stroke="var(--warn)" strokeWidth="1.8" />
+        <text x={pad + 8} y={pad + 14} fill="var(--muted)" fontSize="12">
           Equity
         </text>
-        <text x={pad + 8} y={pad + 30} fill="#657285" fontSize="12">
+        <text x={pad + 8} y={pad + 30} fill="var(--muted)" fontSize="12">
           Drawdown
         </text>
-        <text x={pad} y={height - 12} fill="#657285" fontSize="12">
+        <text x={pad} y={height - 12} fill="var(--muted)" fontSize="12">
           {chartRows[0]?.date}
         </text>
-        <text x={width - 128} y={height - 12} fill="#657285" fontSize="12">
+        <text x={width - 128} y={height - 12} fill="var(--muted)" fontSize="12">
           {chartRows[chartRows.length - 1]?.date}
         </text>
       </svg>
@@ -339,10 +392,10 @@ function StrategySummaryTable({ rows }: { rows: Performance[] }) {
             <th>Strategy PnL</th>
             <th>Daily PnL</th>
             <th>Daily Return</th>
-            <th>Daily vs SPY</th>
+            <th>Daily vs S&P 500</th>
             <th>Total PnL</th>
             <th>Total Return</th>
-            <th>Total vs SPY</th>
+            <th>Total vs S&P 500</th>
             <th>Max DD</th>
             <th>Open</th>
           </tr>
@@ -356,10 +409,10 @@ function StrategySummaryTable({ rows }: { rows: Performance[] }) {
               <td className={row.summary.latest_equity < 0 ? "negative" : "positive"}>{money(row.summary.latest_equity)}</td>
               <td className={row.summary.daily_pnl < 0 ? "negative" : "positive"}>{money(row.summary.daily_pnl)}</td>
               <td className={row.summary.daily_return < 0 ? "negative" : "positive"}>{percent(row.summary.daily_return)}</td>
-              <td className={(row.summary.daily_return_over_spy || 0) < 0 ? "negative" : "positive"}>{percent(row.summary.daily_return_over_spy)}</td>
+              <td className={(row.summary.daily_return_over_spy || 0) < 0 ? "negative" : "positive"}>{signedPercent(row.summary.daily_return_over_spy)}</td>
               <td className={row.summary.total_pnl < 0 ? "negative" : "positive"}>{money(row.summary.total_pnl)}</td>
               <td className={row.summary.total_return < 0 ? "negative" : "positive"}>{percent(row.summary.total_return)}</td>
-              <td className={(row.summary.total_return_over_spy || 0) < 0 ? "negative" : "positive"}>{percent(row.summary.total_return_over_spy)}</td>
+              <td className={(row.summary.total_return_over_spy || 0) < 0 ? "negative" : "positive"}>{signedPercent(row.summary.total_return_over_spy)}</td>
               <td className={row.summary.max_drawdown < 0 ? "negative" : ""}>{percent(row.summary.max_drawdown)}</td>
               <td>{row.summary.open_positions}</td>
             </tr>
@@ -490,6 +543,14 @@ function percent(value: number | null | undefined): string {
     return "";
   }
   return `${(value * 100).toFixed(2)}%`;
+}
+
+function signedPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) {
+    return "";
+  }
+  const formatted = percent(value);
+  return value > 0 ? `+${formatted}` : formatted;
 }
 
 function number(value: number): string {

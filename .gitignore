@@ -12,3 +12,4 @@ output/
 __pycache__/
 .pytest_cache/
 .coverage
+webull_*_sdk.log*

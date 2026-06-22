@@ -1,173 +1,22 @@
-136974316900864 2026-06-15 15:24:38,968 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-136974316900864 2026-06-15 15:24:38,969 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-136974316900864 2026-06-15 15:24:38,969 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-136974316900864 2026-06-15 15:24:38,969 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-136974316900864 2026-06-15 15:24:38,969 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-136974316900864 2026-06-15 15:24:38,970 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782250690617 status:NORMAL
-136974316900864 2026-06-15 15:24:39,075 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-136974316900864 2026-06-15 15:24:39,076 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-136974316900864 2026-06-15 15:24:39,076 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-136974316900864 2026-06-15 15:24:39,076 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-136974316900864 2026-06-15 15:24:39,076 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:25:19,004 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388132521664 2026-06-15 15:25:19,004 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388132521664 2026-06-15 15:25:19,004 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:25:19,005 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:25:19,005 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388132521664 2026-06-15 15:25:19,005 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:25:19,094 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:25:19,095 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:25:19,095 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:25:19,095 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388132521664 2026-06-15 15:25:19,095 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,827 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388132521664 2026-06-15 15:26:41,827 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,828 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,914 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,915 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388132521664 2026-06-15 15:26:41,915 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388132521664 2026-06-15 15:26:41,915 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388132521664 2026-06-15 15:26:41,915 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,602 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388124128960 2026-06-15 15:31:39,602 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388124128960 2026-06-15 15:31:39,602 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,603 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,694 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,694 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,694 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,695 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129388124128960 2026-06-15 15:31:39,696 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:32:08,870 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-137034219910848 2026-06-15 15:32:08,871 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-137034219910848 2026-06-15 15:32:08,871 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:32:08,871 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:32:08,872 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-137034219910848 2026-06-15 15:32:08,872 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:32:08,953 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:32:08,954 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:32:08,954 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:32:08,954 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-137034219910848 2026-06-15 15:32:08,954 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-126458358751744 2026-06-15 15:32:58,658 webull.core.client ERROR HttpError occurred. Host:api.webull.com SDK-Version:2.0.11 Request:{
-  "_version": "v2",
-  "_action_name": "/openapi/config",
-  "_protocol_type": "https",
-  "_accept_format": "JSON",
-  "_params": {},
-  "_method": "GET",
-  "_header": {
-    "x-version": "v2",
-    "Accept-Encoding": "gzip",
-    "x-app-key": "4b5a8a9ef8df2ad58863f827e8210db5",
-    "x-timestamp": "2026-06-15T15:32:58Z",
-    "x-signature-version": "1.0",
-    "x-signature-algorithm": "HMAC-SHA1",
-    "x-signature-nonce": "4f031053-f839-5037-817c-1e928ca8da93",
-    "x-signature": "NrX127tUWCBMUyrn6EmOdD8EpfQ=",
-    "User-Agent": "WebullApiSDK (Linux 7.0.0-22-generic;x86_64) Python/3.13.14 Core/2.0.11 python-requests/2.34.2",
-    "x-webull-client-source": "sdk"
-  },
-  "_body_params": null,
-  "_uri_pattern": null,
-  "_uri_params": null,
-  "_content": null,
-  "_extra_user_agent": {},
-  "string_to_sign": "",
-  "_request_connect_timeout": null,
-  "_request_read_timeout": null,
-  "endpoint": "api.webull.com",
-  "_signer_spec": "<module 'webull.core.auth.algorithm.sha_hmac1' from '/home/joflay/portfolio_dashboard/.venv/lib/python3.13/site-packages/webull/core/auth/algorithm/sha_hmac1.py'>"
-} ClientException:SDK.HttpError HTTPSConnectionPool(host='api.webull.com', port=443): Max retries exceeded with url: /openapi/config (Caused by NameResolutionError("HTTPSConnection(host='api.webull.com', port=443): Failed to resolve 'api.webull.com' ([Errno -2] Name or service not known)"))
-137034219910848 2026-06-15 15:35:50,862 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-137034219910848 2026-06-15 15:35:50,862 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,863 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,954 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,954 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,955 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,955 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,955 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,955 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,956 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-137034219910848 2026-06-15 15:35:50,956 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-137034219910848 2026-06-15 15:35:50,956 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137034219910848 2026-06-15 15:35:50,956 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129733166454464 2026-06-15 15:36:33,281 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-129733166454464 2026-06-15 15:36:33,282 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-129733166454464 2026-06-15 15:36:33,282 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129733166454464 2026-06-15 15:36:33,282 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-129733166454464 2026-06-15 15:36:33,282 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-129733166454464 2026-06-15 15:36:33,282 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129733166454464 2026-06-15 15:36:33,366 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129733166454464 2026-06-15 15:36:33,367 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129733166454464 2026-06-15 15:36:33,367 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-129733166454464 2026-06-15 15:36:33,367 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-129733166454464 2026-06-15 15:36:33,367 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-125218717521600 2026-06-15 15:40:00,861 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-125218717521600 2026-06-15 15:40:00,862 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-125218717521600 2026-06-15 15:40:00,862 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-125218717521600 2026-06-15 15:40:00,862 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-125218717521600 2026-06-15 15:40:00,862 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-125218717521600 2026-06-15 15:40:00,862 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-125218717521600 2026-06-15 15:40:00,951 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-125218717521600 2026-06-15 15:40:00,952 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-125218717521600 2026-06-15 15:40:00,952 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-125218717521600 2026-06-15 15:40:00,952 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-125218717521600 2026-06-15 15:40:00,952 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137534217475776 2026-06-15 16:35:32,716 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
-137534217475776 2026-06-15 16:35:32,717 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
-137534217475776 2026-06-15 16:35:32,717 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137534217475776 2026-06-15 16:35:32,718 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
-137534217475776 2026-06-15 16:35:32,718 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
-137534217475776 2026-06-15 16:35:32,718 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137534217475776 2026-06-15 16:35:32,803 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137534217475776 2026-06-15 16:35:32,804 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137534217475776 2026-06-15 16:35:32,804 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
-137534217475776 2026-06-15 16:35:32,804 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
-137534217475776 2026-06-15 16:35:32,804 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1782833079047 status:NORMAL
+131495912388288 2026-06-22 18:39:11,424 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
+131495912388288 2026-06-22 18:39:11,425 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
+131495912388288 2026-06-22 18:39:11,425 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
+131495912388288 2026-06-22 18:39:11,426 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
+131495912388288 2026-06-22 18:39:11,426 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
+131495912388288 2026-06-22 18:39:11,426 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:11,626 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:11,627 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:11,627 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:11,627 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
+131495912388288 2026-06-22 18:39:11,627 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:13,471 webull.core.http.initializer.client_initializer INFO _check_token_enable result is True
+131495912388288 2026-06-22 18:39:13,472 webull.core.http.initializer.token.token_storage INFO storage_token uses the default configuration, conf.
+131495912388288 2026-06-22 18:39:13,472 webull.core.http.initializer.token.token_storage INFO storage_token initialized path:/home/joflay/portfolio_dashboard/conf/token.txt.
+131495912388288 2026-06-22 18:39:13,472 webull.core.http.initializer.token.token_storage WARNING storage_token Note: The token file already exists, the latest token configuration will be overwritten and written to the token file after successful 2FA verification. path:/home/joflay/portfolio_dashboard/conf/token.txt.
+131495912388288 2026-06-22 18:39:13,472 webull.core.http.initializer.token.token_manager INFO load_token_from_local reading token from file...
+131495912388288 2026-06-22 18:39:13,472 webull.core.http.initializer.token.token_manager INFO load_token_from_local read local token result. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:13,625 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token result. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:13,626 webull.core.http.initializer.token.token_manager INFO fetch_token_from_server create_token status is verified, no further check required, returning directly. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:13,626 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to local file. token:7cf876******1d70dd expires:1783449536346 status:NORMAL
+131495912388288 2026-06-22 18:39:13,626 webull.core.http.initializer.token.token_manager INFO save_token_to_local writing token to file completed.
+131495912388288 2026-06-22 18:39:13,626 webull.core.http.initializer.token.token_manager INFO init_token finished. token:7cf876******1d70dd expires:1783449536346 status:NORMAL

@@ -7,7 +7,7 @@ from typing import Any
 from . import DEFAULT_STRATEGY
 from .config import Settings, load_settings
 from .db import Database
-from .market_data import load_symbol_prices
+from .market_data import fetch_benchmark_daily_prices, load_symbol_prices
 from .webull import WebullClient
 
 
@@ -60,6 +60,7 @@ def run_sync(settings: Settings | None = None) -> SyncResult:
             symbols.update(_symbols(positions))
             symbols.update(_symbols(orders))
 
+        symbols.add("SPY")
         price_count = cache_prices(db, settings, symbols)
         result = SyncResult(
             True,
@@ -85,6 +86,11 @@ def cache_prices(db: Database, settings: Settings, symbols: set[str]) -> int:
         if rows:
             db.upsert_prices(symbol, rows, str(settings.market_data_dir / f"{symbol}_stock_data.csv"))
             written += len(rows)
+        if symbol.upper() == "SPY":
+            benchmark_rows = fetch_benchmark_daily_prices(symbol, settings.strategy_start_date)
+            if benchmark_rows:
+                db.upsert_prices(symbol, benchmark_rows, "benchmark:daily")
+                written += len(benchmark_rows)
     return written
 
 

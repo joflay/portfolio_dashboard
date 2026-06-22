@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+import json
 from math import sqrt
 from sqlite3 import Row
 from typing import Any
@@ -35,8 +36,9 @@ def build_performance(
     if not equity_curve and holdings:
         equity_curve = _equity_from_current_holdings(holdings, prices)
 
-    daily = _daily_rows(equity_curve)
     marked_holdings = _holdings_with_marks(holdings, prices)
+    daily = _daily_rows(equity_curve)
+    daily = _apply_broker_latest_daily(daily, marked_holdings)
     risk_free_rates = risk_free_rates or {}
     summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices)
     return {
@@ -144,6 +146,43 @@ def _daily_rows(equity_curve: list[tuple[str, float]]) -> list[dict[str, float |
     return rows
 
 
+def _apply_broker_latest_daily(
+    daily: list[dict[str, float | str]],
+    holdings: list[dict[str, Any]],
+) -> list[dict[str, float | str]]:
+    if not daily:
+        return daily
+
+    broker_daily_pnl = _sum_first_floats(
+        holdings,
+        "day_profit_loss",
+        "dayProfitLoss",
+        "day_pnl",
+        "dayPnl",
+        "today_profit_loss",
+        "todayProfitLoss",
+    )
+    broker_unrealized_pnl = _sum_first_floats(
+        holdings,
+        "unrealized_profit_loss",
+        "unrealizedProfitLoss",
+        "unrealized_pnl",
+        "unrealizedPnl",
+    )
+    if broker_daily_pnl is None and broker_unrealized_pnl is None:
+        return daily
+
+    gross_exposure = sum(abs(float(row.get("market_value") or 0.0)) for row in holdings)
+    latest = dict(daily[-1])
+    if broker_unrealized_pnl is not None:
+        latest["equity"] = round(broker_unrealized_pnl, 4)
+    if broker_daily_pnl is not None:
+        latest["daily_pnl"] = round(broker_daily_pnl, 4)
+        latest["daily_return"] = round(_exposure_return(broker_daily_pnl, gross_exposure), 8)
+
+    return [*daily[:-1], latest]
+
+
 def _summary(
     daily: list[dict[str, Any]],
     holdings: list[dict[str, Any]],
@@ -152,17 +191,38 @@ def _summary(
     prices: dict[str, dict[str, float]],
 ) -> dict[str, Any]:
     excess_returns = _daily_excess_returns(daily, risk_free_rates)
-    latest_equity = float(daily[-1]["equity"]) if daily else 0.0
+    synthetic_latest_equity = float(daily[-1]["equity"]) if daily else 0.0
     start_equity = float(daily[0]["equity"]) if daily else 0.0
     max_drawdown = min((float(row["drawdown"]) for row in daily), default=0.0)
     latest_rf = latest_rate_on_or_before(risk_free_rates, str(daily[-1]["date"])) if daily else None
     net_exposure = sum(float(row.get("market_value") or 0.0) for row in holdings)
     gross_exposure = sum(abs(float(row.get("market_value") or 0.0)) for row in holdings)
-    total_pnl = latest_equity - start_equity if daily else 0.0
-    daily_pnl = float(daily[-1]["daily_pnl"]) if daily else 0.0
+    synthetic_total_pnl = synthetic_latest_equity - start_equity if daily else 0.0
+    synthetic_daily_pnl = float(daily[-1]["daily_pnl"]) if daily else 0.0
+    broker_unrealized_pnl = _sum_first_floats(
+        holdings,
+        "unrealized_profit_loss",
+        "unrealizedProfitLoss",
+        "unrealized_pnl",
+        "unrealizedPnl",
+    )
+    broker_daily_pnl = _sum_first_floats(
+        holdings,
+        "day_profit_loss",
+        "dayProfitLoss",
+        "day_pnl",
+        "dayPnl",
+        "today_profit_loss",
+        "todayProfitLoss",
+    )
+    latest_equity = broker_unrealized_pnl if broker_unrealized_pnl is not None else synthetic_latest_equity
+    total_pnl = broker_unrealized_pnl if broker_unrealized_pnl is not None else synthetic_total_pnl
+    daily_pnl = broker_daily_pnl if broker_daily_pnl is not None else synthetic_daily_pnl
     daily_return = _exposure_return(daily_pnl, gross_exposure)
     total_return = _exposure_return(total_pnl, gross_exposure)
-    spy_daily_return = _symbol_daily_return(prices, "SPY")
+    latest_date = str(daily[-1]["date"]) if daily else None
+    previous_date = str(daily[-2]["date"]) if len(daily) > 1 else None
+    spy_daily_return = _symbol_daily_return(prices, "SPY", previous_date, latest_date)
     spy_total_return = (
         _symbol_return(prices, "SPY", str(daily[0]["date"]), str(daily[-1]["date"])) if daily else None
     )
@@ -197,12 +257,18 @@ def _exposure_return(pnl: float, gross_exposure: float) -> float:
     return 0.0 if gross_exposure == 0 else pnl / gross_exposure
 
 
-def _symbol_daily_return(prices: dict[str, dict[str, float]], symbol: str) -> float | None:
-    closes = [marks[symbol] for marks in prices.values() if symbol in marks]
-    if len(closes) < 2:
+def _symbol_daily_return(
+    prices: dict[str, dict[str, float]],
+    symbol: str,
+    previous_date: str | None,
+    latest_date: str | None,
+) -> float | None:
+    if not previous_date or not latest_date:
         return None
-    previous = closes[-2]
-    latest = closes[-1]
+    previous = prices.get(previous_date, {}).get(symbol)
+    latest = prices.get(latest_date, {}).get(symbol)
+    if previous is None or latest is None:
+        return None
     return None if previous == 0 else (latest - previous) / abs(previous)
 
 
@@ -260,6 +326,22 @@ def _holdings_with_marks(
                 "last_price": mark,
                 "return": _holding_return(qty, avg_price, mark),
                 "price_date": marked[0] if marked else None,
+                "day_profit_loss": _first_float(
+                    holding,
+                    "day_profit_loss",
+                    "dayProfitLoss",
+                    "day_pnl",
+                    "dayPnl",
+                    "today_profit_loss",
+                    "todayProfitLoss",
+                ),
+                "unrealized_profit_loss": _first_float(
+                    holding,
+                    "unrealized_profit_loss",
+                    "unrealizedProfitLoss",
+                    "unrealized_pnl",
+                    "unrealizedPnl",
+                ),
             }
         )
     return output
@@ -270,6 +352,36 @@ def _holding_return(quantity: float, avg_price: float | None, mark: float) -> fl
         return None
     direction = 1 if quantity >= 0 else -1
     return round(((mark - avg_price) / abs(avg_price)) * direction, 8)
+
+
+def _sum_first_floats(rows: list[dict[str, Any]], *names: str) -> float | None:
+    total = 0.0
+    found = False
+    for row in rows:
+        value = _first_float(row, *names)
+        if value is None:
+            continue
+        total += value
+        found = True
+    return total if found else None
+
+
+def _first_float(source: Any, *names: str) -> float | None:
+    if isinstance(source, dict):
+        for name in names:
+            value = _float(source.get(name))
+            if value is not None:
+                return value
+        for value in source.values():
+            nested = _first_float(value, *names)
+            if nested is not None:
+                return nested
+    elif isinstance(source, list):
+        for item in source:
+            nested = _first_float(item, *names)
+            if nested is not None:
+                return nested
+    return None
 
 
 def _trade_dict(fill: Fill) -> dict[str, Any]:
@@ -286,7 +398,17 @@ def _trade_dict(fill: Fill) -> dict[str, Any]:
 
 
 def _row_dict(row: Row | dict[str, Any]) -> dict[str, Any]:
-    return dict(row)
+    item = dict(row)
+    raw_json = item.get("raw_json")
+    if not raw_json:
+        return item
+    try:
+        payload = json.loads(str(raw_json))
+    except (TypeError, ValueError):
+        return item
+    if not isinstance(payload, dict):
+        return item
+    return {**payload, **item}
 
 
 def _float(value: Any) -> float | None:
