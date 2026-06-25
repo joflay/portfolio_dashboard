@@ -24,6 +24,13 @@ def test_load_symbol_prices_falls_back_to_tr_close(tmp_path: Path) -> None:
     assert load_symbol_prices(tmp_path, "ABC") == [("2026-01-02", 11.0)]
 
 
+def test_load_symbol_prices_uses_old_ticker_file_for_echo(tmp_path: Path) -> None:
+    path = tmp_path / "SATS_stock_data.csv"
+    path.write_text("Date,Close\n2026-01-02,10\n")
+
+    assert load_symbol_prices(tmp_path, "ECHO") == [("2026-01-02", 10.0)]
+
+
 def test_fetch_nasdaq_daily_prices_parses_historical_payload(monkeypatch) -> None:
     class _Response:
         def __enter__(self):

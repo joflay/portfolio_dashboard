@@ -36,6 +36,8 @@ class Settings:
     dashboard_port: int
     sync_interval_minutes: int
     strategy_start_date: str
+    strategy_rebalance_start_date: str
+    strategy_rebalance_days: int
     account_info_file: Path
 
 
@@ -63,6 +65,8 @@ def load_settings() -> Settings:
         dashboard_port=int(get("DASHBOARD_PORT", "8080")),
         sync_interval_minutes=int(get("SYNC_INTERVAL_MINUTES", "15")),
         strategy_start_date=get("STRATEGY_START_DATE", "2026-06-12"),
+        strategy_rebalance_start_date=get("STRATEGY_REBALANCE_START_DATE", get("STRATEGY_START_DATE", "2026-06-12")),
+        strategy_rebalance_days=int(get("STRATEGY_REBALANCE_DAYS", "14")),
         account_info_file=Path(get("WEBULL_ACCOUNT_INFO_FILE", str(BASE_DIR / "accouninfo.txt"))).expanduser(),
     )
 

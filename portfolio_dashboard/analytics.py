@@ -3,11 +3,13 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass
 import json
+from datetime import date, timedelta
 from math import sqrt
 from sqlite3 import Row
 from typing import Any
 
 from .risk_free import latest_rate_on_or_before
+from .symbols import canonical_symbol
 
 
 @dataclass(frozen=True)
@@ -26,21 +28,32 @@ def build_performance(
     price_rows: list[Row | dict[str, Any]],
     risk_free_rates: dict[str, float] | None = None,
     strategy: str = "Vol_Factor",
+    rebalance_start_date: str | None = None,
+    rebalance_days: int | None = None,
 ) -> dict[str, Any]:
-    holdings = [_row_dict(row) for row in positions]
+    holdings = [_canonicalize_row_symbol(_row_dict(row)) for row in positions]
     fills = _extract_fills(orders)
     prices = _prices_by_date(price_rows)
     symbols = sorted({h["symbol"] for h in holdings} | {f.symbol for f in fills})
 
-    equity_curve = _equity_from_fills(fills, prices, symbols)
+    mark_based = bool(rebalance_start_date and holdings)
+    if mark_based:
+        equity_curve = _equity_from_rebalance_holdings(holdings, prices, str(rebalance_start_date)[:10])
+    else:
+        equity_curve = _equity_from_fills(fills, prices, symbols)
     if not equity_curve and holdings:
         equity_curve = _equity_from_current_holdings(holdings, prices)
 
     marked_holdings = _holdings_with_marks(holdings, prices)
-    daily = _daily_rows(equity_curve)
-    daily = _apply_broker_latest_daily(daily, marked_holdings)
+    daily = _daily_rows(equity_curve, return_on_exposure=mark_based)
+    if not mark_based:
+        daily = _apply_broker_latest_daily(daily, marked_holdings)
     risk_free_rates = risk_free_rates or {}
-    summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices)
+    summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices, use_broker_pnl=not mark_based)
+    if rebalance_start_date:
+        summary["rebalance_start_date"] = str(rebalance_start_date)[:10]
+        summary["rebalance_days"] = rebalance_days
+        summary["next_rebalance_date"] = _next_rebalance_date(str(rebalance_start_date)[:10], rebalance_days)
     return {
         "strategy": strategy,
         "summary": summary,
@@ -65,7 +78,7 @@ def _extract_fills(orders: list[Row | dict[str, Any]]) -> list[Fill]:
             continue
         if status and not any(word in status for word in ("FILLED", "EXECUTED", "COMPLETE", "CLOSED")):
             continue
-        fills.append(Fill(str(placed_at)[:10], symbol, side, qty, price, str(item.get("order_id") or "")))
+        fills.append(Fill(str(placed_at)[:10], canonical_symbol(symbol), side, qty, price, str(item.get("order_id") or "")))
     return fills
 
 
@@ -75,7 +88,7 @@ def _prices_by_date(price_rows: list[Row | dict[str, Any]]) -> dict[str, dict[st
         item = _row_dict(row)
         close = _float(item.get("close"))
         if item.get("date") and item.get("symbol") and close is not None:
-            prices[str(item["date"])[:10]][str(item["symbol"])] = close
+            prices[str(item["date"])[:10]][canonical_symbol(item["symbol"])] = close
     return dict(sorted(prices.items()))
 
 
@@ -124,25 +137,75 @@ def _equity_from_current_holdings(
     return curve
 
 
-def _daily_rows(equity_curve: list[tuple[str, float]]) -> list[dict[str, float | str]]:
-    rows: list[dict[str, float | str]] = []
+def _equity_from_rebalance_holdings(
+    holdings: list[dict[str, Any]],
+    prices: dict[str, dict[str, float]],
+    rebalance_start_date: str,
+) -> list[tuple[str, float, float, float, float]]:
+    quantities = {row["symbol"]: _float(row.get("quantity")) or 0.0 for row in holdings}
+    baseline_marks = {
+        row["symbol"]: _float(row.get("avg_price"))
+        for row in holdings
+        if _float(row.get("avg_price")) is not None
+    }
+    symbols = sorted(quantities)
+    curve: list[tuple[str, float, float, float, float]] = []
+    last_marks: dict[str, float] = {}
+    for day, marks in prices.items():
+        if day < rebalance_start_date:
+            continue
+        last_marks.update(marks)
+        day_marks = {symbol: last_marks.get(symbol, baseline_marks.get(symbol)) for symbol in symbols}
+        if any(mark is None for mark in day_marks.values()):
+            continue
+        market_values = [quantities[symbol] * float(day_marks[symbol]) for symbol in symbols]
+        value = sum(market_values)
+        long_value = sum(market_value for market_value in market_values if market_value > 0)
+        short_value = sum(market_value for market_value in market_values if market_value < 0)
+        curve.append((day, value, sum(abs(market_value) for market_value in market_values), long_value, short_value))
+    return curve
+
+
+def _daily_rows(
+    equity_curve: list[tuple[str, float] | tuple[str, float, float] | tuple[str, float, float, float, float]],
+    return_on_exposure: bool = False,
+) -> list[dict[str, float | str | None]]:
+    rows: list[dict[str, float | str | None]] = []
     peak: float | None = None
     prior: float | None = None
-    for day, equity in equity_curve:
+    prior_long: float | None = None
+    prior_short: float | None = None
+    for point in equity_curve:
+        day = point[0]
+        equity = point[1]
+        exposure = point[2] if len(point) > 2 else None
+        long_value = point[3] if len(point) > 3 else None
+        short_value = point[4] if len(point) > 4 else None
         pnl = 0.0 if prior is None else equity - prior
-        daily_return = 0.0 if prior in (None, 0.0) else pnl / abs(prior)
+        long_pnl = None if long_value is None or prior_long is None else long_value - prior_long
+        short_pnl = None if short_value is None or prior_short is None else short_value - prior_short
+        return_denominator = exposure if return_on_exposure else prior
+        daily_return = 0.0 if return_denominator in (None, 0.0) else pnl / abs(return_denominator)
+        long_return = None if long_pnl is None or long_value in (None, 0.0) else long_pnl / abs(long_value)
+        short_return = None if short_pnl is None or short_value in (None, 0.0) else short_pnl / abs(short_value)
         peak = equity if peak is None else max(peak, equity)
-        drawdown = 0.0 if not peak else (equity - peak) / abs(peak)
+        drawdown_dollars = equity - peak
+        drawdown_denominator = exposure if return_on_exposure else peak
+        drawdown = 0.0 if drawdown_denominator in (None, 0.0) else drawdown_dollars / abs(drawdown_denominator)
         rows.append(
             {
                 "date": day,
                 "equity": round(equity, 4),
                 "daily_pnl": round(pnl, 4),
                 "daily_return": round(daily_return, 8),
+                "long_return": round(long_return, 8) if long_return is not None else None,
+                "short_return": round(short_return, 8) if short_return is not None else None,
                 "drawdown": round(drawdown, 8),
             }
         )
         prior = equity
+        prior_long = long_value
+        prior_short = short_value
     return rows
 
 
@@ -189,6 +252,7 @@ def _summary(
     fills: list[Fill],
     risk_free_rates: dict[str, float],
     prices: dict[str, dict[str, float]],
+    use_broker_pnl: bool = True,
 ) -> dict[str, Any]:
     excess_returns = _daily_excess_returns(daily, risk_free_rates)
     synthetic_latest_equity = float(daily[-1]["equity"]) if daily else 0.0
@@ -215,9 +279,9 @@ def _summary(
         "today_profit_loss",
         "todayProfitLoss",
     )
-    latest_equity = broker_unrealized_pnl if broker_unrealized_pnl is not None else synthetic_latest_equity
+    latest_equity = broker_unrealized_pnl if use_broker_pnl and broker_unrealized_pnl is not None else synthetic_latest_equity
     total_pnl = broker_unrealized_pnl if broker_unrealized_pnl is not None else synthetic_total_pnl
-    daily_pnl = broker_daily_pnl if broker_daily_pnl is not None else synthetic_daily_pnl
+    daily_pnl = broker_daily_pnl if use_broker_pnl and broker_daily_pnl is not None else synthetic_daily_pnl
     daily_return = _exposure_return(daily_pnl, gross_exposure)
     total_return = _exposure_return(total_pnl, gross_exposure)
     latest_date = str(daily[-1]["date"]) if daily else None
@@ -279,6 +343,15 @@ def _symbol_return(prices: dict[str, dict[str, float]], symbol: str, start_date:
     first = closes[0]
     latest = closes[-1]
     return None if first == 0 else (latest - first) / abs(first)
+
+
+def _next_rebalance_date(start_date: str, rebalance_days: int | None) -> str | None:
+    if not rebalance_days:
+        return None
+    try:
+        return (date.fromisoformat(start_date) + timedelta(days=rebalance_days)).isoformat()
+    except ValueError:
+        return None
 
 
 def _daily_excess_returns(daily: list[dict[str, Any]], risk_free_rates: dict[str, float]) -> list[float]:
@@ -409,6 +482,12 @@ def _row_dict(row: Row | dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict):
         return item
     return {**payload, **item}
+
+
+def _canonicalize_row_symbol(item: dict[str, Any]) -> dict[str, Any]:
+    if item.get("symbol"):
+        return {**item, "symbol": canonical_symbol(item["symbol"])}
+    return item
 
 
 def _float(value: Any) -> float | None:

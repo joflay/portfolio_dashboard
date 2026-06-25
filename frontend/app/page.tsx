@@ -52,6 +52,8 @@ type EquityRow = {
   equity: number;
   daily_pnl: number;
   daily_return: number;
+  long_return: number | null;
+  short_return: number | null;
   drawdown: number;
 };
 
@@ -202,7 +204,6 @@ function HomeTab({ account, strategies }: { account: AccountSummary; strategies:
         <Metric label="Account Net AUM" value={account.net_aum_in_db ? money(account.net_aum) : "Not in DB"} />
         <Metric label="Strategy Net Exposure" value={money(account.net_exposure)} />
         <Metric label="Gross Exposure" value={money(account.gross_exposure)} />
-        <Metric label="Strategy PnL" value={money(account.latest_equity)} positive={account.latest_equity > 0} negative={account.latest_equity < 0} />
         <Metric label="Daily PnL" value={money(account.daily_pnl)} positive={account.daily_pnl > 0} negative={account.daily_pnl < 0} />
         <Metric label="Daily Return" value={percent(account.daily_return)} positive={account.daily_return > 0} negative={account.daily_return < 0} />
         <Metric
@@ -243,7 +244,6 @@ function StrategyTab({ data }: { data: Performance }) {
         <section className="metric-group metric-group-performance" aria-label="Performance metrics">
           <h2>Performance</h2>
           <div className="metrics performance-metrics">
-            <Metric label="Strategy PnL" value={money(summary.latest_equity)} positive={summary.latest_equity > 0} negative={summary.latest_equity < 0} featured />
             <Metric label="Daily PnL" value={money(summary.daily_pnl)} positive={summary.daily_pnl > 0} negative={summary.daily_pnl < 0} featured />
             <Metric label="Total PnL" value={money(summary.total_pnl)} positive={summary.total_pnl > 0} negative={summary.total_pnl < 0} featured />
             <Metric label="Daily Return" value={percent(summary.daily_return)} positive={summary.daily_return > 0} negative={summary.daily_return < 0} />
@@ -389,7 +389,6 @@ function StrategySummaryTable({ rows }: { rows: Performance[] }) {
             <th>Strategy</th>
             <th>Strategy Net Exposure</th>
             <th>Gross Exposure</th>
-            <th>Strategy PnL</th>
             <th>Daily PnL</th>
             <th>Daily Return</th>
             <th>Daily vs S&P 500</th>
@@ -406,7 +405,6 @@ function StrategySummaryTable({ rows }: { rows: Performance[] }) {
               <td>{row.strategy}</td>
               <td>{money(row.summary.net_exposure)}</td>
               <td>{money(row.summary.gross_exposure)}</td>
-              <td className={row.summary.latest_equity < 0 ? "negative" : "positive"}>{money(row.summary.latest_equity)}</td>
               <td className={row.summary.daily_pnl < 0 ? "negative" : "positive"}>{money(row.summary.daily_pnl)}</td>
               <td className={row.summary.daily_return < 0 ? "negative" : "positive"}>{percent(row.summary.daily_return)}</td>
               <td className={(row.summary.daily_return_over_spy || 0) < 0 ? "negative" : "positive"}>{signedPercent(row.summary.daily_return_over_spy)}</td>
@@ -499,9 +497,10 @@ function DailyTable({ rows }: { rows: EquityRow[] }) {
         <thead>
           <tr>
             <th>Date</th>
-            <th>Equity</th>
             <th>PnL</th>
             <th>Return</th>
+            <th>Long Leg</th>
+            <th>Short Leg</th>
             <th>Drawdown</th>
           </tr>
         </thead>
@@ -509,9 +508,10 @@ function DailyTable({ rows }: { rows: EquityRow[] }) {
           {rows.map((row) => (
             <tr key={row.date}>
               <td>{row.date}</td>
-              <td>{money(row.equity)}</td>
               <td className={row.daily_pnl < 0 ? "negative" : "positive"}>{money(row.daily_pnl)}</td>
-              <td>{percent(row.daily_return)}</td>
+              <td className={row.daily_return < 0 ? "negative" : "positive"}>{percent(row.daily_return)}</td>
+              <td className={toneClass(row.long_return)}>{percent(row.long_return)}</td>
+              <td className={toneClass(row.short_return)}>{percent(row.short_return)}</td>
               <td className={row.drawdown < 0 ? "negative" : ""}>{percent(row.drawdown)}</td>
             </tr>
           ))}
@@ -536,6 +536,13 @@ function money(value: number | null | undefined): string {
     return "";
   }
   return value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function toneClass(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value) || value === 0) {
+    return "";
+  }
+  return value < 0 ? "negative" : "positive";
 }
 
 function percent(value: number | null | undefined): string {

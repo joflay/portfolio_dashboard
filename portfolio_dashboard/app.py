@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import date
 import json
 from typing import Any
 
@@ -13,8 +12,8 @@ from .analytics import build_performance
 from .config import load_settings
 from .db import Database
 from .risk_free import load_risk_free_rates
+from .symbols import canonical_symbol, lookup_symbols
 from .sync import cache_prices, run_sync
-from .webull import WebullClient
 
 
 settings = load_settings()
@@ -107,40 +106,23 @@ def _performance(strategy: str) -> dict[str, Any]:
     db.initialize()
     positions = db.fetch_positions(strategy)
     orders = db.fetch_orders(strategy, settings.strategy_start_date)
-    symbols = {row["symbol"] for row in positions if row["symbol"]}
-    symbols.update(row["symbol"] for row in orders if row["symbol"])
-    price_symbols = symbols | {BENCHMARK_SYMBOL}
-    if price_symbols:
-        cache_prices(db, settings, price_symbols)
+    symbols = {canonical_symbol(row["symbol"]) for row in positions if row["symbol"]}
+    symbols.update(canonical_symbol(row["symbol"]) for row in orders if row["symbol"])
+    cache_symbols = symbols | {BENCHMARK_SYMBOL}
+    if cache_symbols:
+        cache_prices(db, settings, cache_symbols)
+    price_symbols = lookup_symbols(cache_symbols)
     prices = [dict(row) for row in db.fetch_price_rows(price_symbols, settings.strategy_start_date)]
-    live_prices = _live_price_rows(price_symbols)
-    _persist_live_price_rows(live_prices)
-    prices.extend(live_prices)
     risk_free_rates = load_risk_free_rates(settings.risk_free_rate_file)
-    return build_performance(positions, orders, prices, risk_free_rates, strategy=strategy)
-
-
-def _live_price_rows(symbols: set[str]) -> list[dict[str, Any]]:
-    try:
-        quotes = WebullClient(settings).latest_quotes(symbols)
-    except Exception:
-        return []
-    today = date.today().isoformat()
-    return [
-        {"symbol": symbol, "date": today, "close": price, "source": "sdk:webull.latest_quotes"}
-        for symbol, price in sorted(quotes.items())
-    ]
-
-
-def _persist_live_price_rows(rows: list[dict[str, Any]]) -> None:
-    for row in rows:
-        symbol = row.get("symbol")
-        day = row.get("date")
-        close = row.get("close")
-        source = row.get("source") or "sdk:webull.latest_quotes"
-        if not symbol or not day or close is None:
-            continue
-        db.upsert_prices(str(symbol), [(str(day), float(close))], str(source))
+    return build_performance(
+        positions,
+        orders,
+        prices,
+        risk_free_rates,
+        strategy=strategy,
+        rebalance_start_date=settings.strategy_rebalance_start_date,
+        rebalance_days=settings.strategy_rebalance_days,
+    )
 
 
 def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], account_assets: list[Any]) -> dict[str, Any]:

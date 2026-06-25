@@ -58,6 +58,33 @@ def test_positions_only_fallback_builds_history() -> None:
     assert result["summary"]["open_positions"] == 1
 
 
+def test_ticker_change_alias_joins_sats_history_to_echo_position() -> None:
+    result = build_performance(
+        [{"symbol": "ECHO", "quantity": 2, "avg_price": 5}],
+        [
+            {
+                "order_id": "1",
+                "symbol": "SATS",
+                "side": "BUY",
+                "quantity": 2,
+                "filled_quantity": 2,
+                "avg_price": 5,
+                "status": "FILLED",
+                "placed_at": "2026-01-01",
+            }
+        ],
+        [
+            {"symbol": "SATS", "date": "2026-01-01", "close": 5},
+            {"symbol": "SATS", "date": "2026-01-02", "close": 6},
+        ],
+    )
+
+    assert result["holdings"][0]["symbol"] == "ECHO"
+    assert result["trades"][0]["symbol"] == "ECHO"
+    assert result["summary"]["latest_equity"] == 2
+    assert result["summary"]["net_exposure"] == 12
+
+
 def test_broker_position_pnl_overrides_synthetic_summary_pnl() -> None:
     result = build_performance(
         [
@@ -88,6 +115,94 @@ def test_broker_position_pnl_overrides_synthetic_summary_pnl() -> None:
     assert result["summary"]["latest_equity"] == 5.5
     assert result["summary"]["total_pnl"] == 5.5
     assert result["summary"]["daily_pnl"] == 1.0
+
+
+def test_rebalance_performance_uses_fixed_current_holdings_and_price_marks() -> None:
+    result = build_performance(
+        [
+            {
+                "symbol": "AAA",
+                "quantity": 2,
+                "avg_price": 10,
+            },
+            {"symbol": "BBB", "quantity": -1, "avg_price": 20},
+        ],
+        [
+            {
+                "order_id": "old",
+                "symbol": "AAA",
+                "side": "BUY",
+                "quantity": 2,
+                "filled_quantity": 2,
+                "avg_price": 3,
+                "status": "FILLED",
+                "placed_at": "2026-01-01",
+            }
+        ],
+        [
+            {"symbol": "AAA", "date": "2026-06-12", "close": 10},
+            {"symbol": "AAA", "date": "2026-06-15", "close": 11},
+            {"symbol": "AAA", "date": "2026-06-16", "close": 12},
+            {"symbol": "BBB", "date": "2026-06-16", "close": 18},
+        ],
+        rebalance_start_date="2026-06-12",
+        rebalance_days=14,
+    )
+
+    assert [row["date"] for row in result["equity_curve"]] == ["2026-06-12", "2026-06-15", "2026-06-16"]
+    assert result["equity_curve"][0]["equity"] == 0
+    assert result["equity_curve"][1]["equity"] == 2
+    assert result["equity_curve"][2]["equity"] == 6
+    assert result["equity_curve"][2]["daily_return"] == 0.0952381
+    assert result["equity_curve"][2]["long_return"] == 0.08333333
+    assert result["equity_curve"][2]["short_return"] == 0.11111111
+    assert result["summary"]["daily_pnl"] == 4
+    assert result["summary"]["total_pnl"] == 6
+    assert result["summary"]["latest_equity"] == 6
+    assert result["summary"]["next_rebalance_date"] == "2026-06-26"
+
+
+def test_rebalance_total_pnl_uses_broker_unrealized_when_available() -> None:
+    result = build_performance(
+        [
+            {
+                "symbol": "AAA",
+                "quantity": 2,
+                "avg_price": 10,
+                "unrealized_profit_loss": "25.25",
+            },
+        ],
+        [],
+        [
+            {"symbol": "AAA", "date": "2026-06-12", "close": 10},
+            {"symbol": "AAA", "date": "2026-06-13", "close": 11},
+        ],
+        rebalance_start_date="2026-06-12",
+    )
+
+    assert result["summary"]["latest_equity"] == 22
+    assert result["summary"]["total_pnl"] == 25.25
+
+
+def test_rebalance_performance_carries_forward_sparse_symbol_marks() -> None:
+    result = build_performance(
+        [
+            {"symbol": "AAA", "quantity": 1, "avg_price": 10},
+            {"symbol": "BBB", "quantity": 1, "avg_price": 20},
+        ],
+        [],
+        [
+            {"symbol": "AAA", "date": "2026-06-12", "close": 10},
+            {"symbol": "BBB", "date": "2026-06-12", "close": 20},
+            {"symbol": "AAA", "date": "2026-06-13", "close": 11},
+            {"symbol": "AAA", "date": "2026-06-14", "close": 12},
+        ],
+        rebalance_start_date="2026-06-12",
+    )
+
+    assert [row["date"] for row in result["equity_curve"]] == ["2026-06-12", "2026-06-13", "2026-06-14"]
+    assert [row["equity"] for row in result["equity_curve"]] == [30, 31, 32]
+    assert result["summary"]["history_end"] == "2026-06-14"
 
 
 def test_latest_daily_row_uses_broker_return_over_gross_exposure() -> None:

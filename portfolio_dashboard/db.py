@@ -8,6 +8,8 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
+from .symbols import canonical_symbol
+
 
 SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -337,7 +339,7 @@ class Database:
 
 
 def normalize_symbol(value: Any) -> str:
-    return str(value or "").strip().upper()
+    return canonical_symbol(value)
 
 
 def _first(source: dict[str, Any], *names: str) -> Any:

@@ -8,6 +8,7 @@ from . import DEFAULT_STRATEGY
 from .config import Settings, load_settings
 from .db import Database
 from .market_data import fetch_benchmark_daily_prices, load_symbol_prices
+from .symbols import canonical_symbol
 from .webull import WebullClient
 
 
@@ -124,7 +125,7 @@ def _symbols(rows: list[dict[str, Any]]) -> set[str]:
         for key in ("symbol", "ticker", "tickerSymbol", "instrumentSymbol"):
             value = row.get(key)
             if value:
-                output.add(str(value).upper())
+                output.add(canonical_symbol(value))
                 break
     return output
 

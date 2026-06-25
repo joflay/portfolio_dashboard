@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from .symbols import aliases_for_symbol, canonical_symbol
+
 
 CLOSE_COLUMNS = ("Close", "TR.CLOSEPRICE(Adjusted=0)", "Adj Close")
 NASDAQ_HISTORICAL_URL = "https://api.nasdaq.com/api/quote/{symbol}/historical"
@@ -14,8 +16,19 @@ YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
 
 
 def load_symbol_prices(market_data_dir: Path, symbol: str) -> list[tuple[str, float]]:
-    path = market_data_dir / f"{symbol.upper()}_stock_data.csv"
-    if not path.exists():
+    canonical = canonical_symbol(symbol)
+    if not canonical:
+        return []
+    candidates = [canonical, *sorted(aliases_for_symbol(symbol) - {canonical})]
+    path = next(
+        (
+            market_data_dir / f"{candidate}_stock_data.csv"
+            for candidate in candidates
+            if (market_data_dir / f"{candidate}_stock_data.csv").exists()
+        ),
+        None,
+    )
+    if path is None:
         return []
 
     prices: list[tuple[str, float]] = []

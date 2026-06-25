@@ -1,5 +1,3 @@
-from datetime import date
-
 from portfolio_dashboard import app as dashboard_app
 
 
@@ -23,30 +21,20 @@ class _FakeDb:
         self.upserted_prices.append((symbol, rows, source))
 
 
-class _FakeWebullClient:
-    def __init__(self, settings):
-        pass
-
-    def latest_quotes(self, symbols):
-        return {"ABC": 12}
-
-
-def test_performance_uses_and_persists_live_webull_prices(monkeypatch) -> None:
+def test_performance_uses_cached_prices_without_live_webull_refresh(monkeypatch) -> None:
     fake_db = _FakeDb()
     monkeypatch.setattr(dashboard_app, "db", fake_db)
-    monkeypatch.setattr(dashboard_app, "WebullClient", _FakeWebullClient)
     monkeypatch.setattr(dashboard_app, "cache_prices", lambda db, settings, symbols: 0)
     monkeypatch.setattr(dashboard_app, "load_risk_free_rates", lambda path: {})
 
     result = dashboard_app._performance("Vol_Factor")
 
-    assert result["summary"]["net_exposure"] == 24
-    assert result["summary"]["latest_equity"] == 24
-    assert result["summary"]["history_end"] == date.today().isoformat()
-    assert result["holdings"][0]["last_price"] == 12
-    assert fake_db.upserted_prices == [
-        ("ABC", [(date.today().isoformat(), 12.0)], "sdk:webull.latest_quotes")
-    ]
+    assert result["summary"]["net_exposure"] == 20
+    assert result["summary"]["latest_equity"] == 20
+    assert result["summary"]["history_end"] == "2026-06-14"
+    assert result["summary"]["next_rebalance_date"] == "2026-06-26"
+    assert result["holdings"][0]["last_price"] == 10
+    assert fake_db.upserted_prices == []
 
 
 def test_account_summary_returns_use_account_net_aum_when_available() -> None:

@@ -27,6 +27,17 @@ def test_all_activity_defaults_to_vol_factor(tmp_path) -> None:
     assert db.fetch_strategies() == ["Vol_Factor"]
 
 
+def test_ticker_change_sats_is_stored_as_echo(tmp_path) -> None:
+    db = Database(tmp_path / "test.db")
+    db.initialize()
+
+    db.upsert_positions("Vol_Factor", "acct", [{"symbol": "SATS", "quantity": "1"}])
+    db.upsert_orders("Vol_Factor", "acct", [{"orderId": "o1", "symbol": "SATS"}])
+
+    assert db.fetch_positions("Vol_Factor")[0]["symbol"] == "ECHO"
+    assert db.fetch_orders("Vol_Factor")[0]["symbol"] == "ECHO"
+
+
 def test_account_assets_store_net_aum(tmp_path) -> None:
     db = Database(tmp_path / "test.db")
     db.initialize()
