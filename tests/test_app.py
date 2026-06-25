@@ -49,6 +49,7 @@ def test_account_summary_returns_use_account_net_aum_when_available() -> None:
                 "spy_daily_return": 0.003,
                 "spy_total_return": 0.015,
                 "max_drawdown": 0,
+                "current_drawdown": 0,
                 "open_positions": 1,
                 "trade_count": 1,
                 "history_start": "2026-06-12",
@@ -61,13 +62,13 @@ def test_account_summary_returns_use_account_net_aum_when_available() -> None:
     result = dashboard_app._account_summary(strategies, [], account_assets)
 
     assert result["gross_exposure"] == 50
-    assert result["daily_return"] == 0.01
-    assert result["total_return"] == 0.02
-    assert result["daily_return_over_spy"] == 0.007
-    assert result["total_return_over_spy"] == 0.005
+    assert result["daily_return"] == 0.04
+    assert result["total_return"] == 0.08
+    assert result["daily_return_over_spy"] == 0.037
+    assert result["total_return_over_spy"] == 0.065
 
 
-def test_account_summary_uses_webull_account_pnl_when_available() -> None:
+def test_account_summary_uses_strategy_pnl_not_webull_account_pnl() -> None:
     strategies = [
         {
             "summary": {
@@ -79,6 +80,7 @@ def test_account_summary_uses_webull_account_pnl_when_available() -> None:
                 "spy_daily_return": None,
                 "spy_total_return": None,
                 "max_drawdown": 0,
+                "current_drawdown": 0,
                 "open_positions": 1,
                 "trade_count": 1,
                 "history_start": "2026-06-12",
@@ -98,6 +100,6 @@ def test_account_summary_uses_webull_account_pnl_when_available() -> None:
 
     result = dashboard_app._account_summary(strategies, [], account_assets)
 
-    assert result["latest_equity"] == 9.65
-    assert result["daily_pnl"] == 9.18
-    assert result["total_pnl"] == 9.65
+    assert result["latest_equity"] == 999
+    assert result["daily_pnl"] == 999
+    assert result["total_pnl"] == 999

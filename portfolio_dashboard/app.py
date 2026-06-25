@@ -135,18 +135,14 @@ def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], acco
     account_net_aum_values = [value for value in account_net_aum_values if value is not None]
     net_exposure = round(sum(float(summary.get("net_exposure") or summary.get("net_aum") or 0.0) for summary in summaries), 2)
     gross_exposure = round(sum(float(summary.get("gross_exposure") or 0.0) for summary in summaries), 2)
-    broker_pnl = _account_broker_pnl(account_assets)
     strategy_latest_equity = sum(float(summary.get("latest_equity") or 0.0) for summary in summaries)
     strategy_daily_pnl = sum(float(summary.get("daily_pnl") or 0.0) for summary in summaries)
     strategy_total_pnl = sum(float(summary.get("total_pnl") or 0.0) for summary in summaries)
-    latest_equity = round(
-        broker_pnl["unrealized"] if broker_pnl["unrealized"] is not None else strategy_latest_equity,
-        2,
-    )
-    daily_pnl = round(broker_pnl["daily"] if broker_pnl["daily"] is not None else strategy_daily_pnl, 2)
-    total_pnl = round(broker_pnl["unrealized"] if broker_pnl["unrealized"] is not None else strategy_total_pnl, 2)
+    latest_equity = round(strategy_latest_equity, 2)
+    daily_pnl = round(strategy_daily_pnl, 2)
+    total_pnl = round(strategy_total_pnl, 2)
     net_aum = round(sum(account_net_aum_values), 2) if account_net_aum_values else None
-    return_baseline = net_aum if net_aum not in (None, 0.0) else gross_exposure
+    return_baseline = gross_exposure
     daily_return = _exposure_return(daily_pnl, return_baseline)
     total_return = _exposure_return(total_pnl, return_baseline)
     spy_daily_return = _first_summary_float(summaries, "spy_daily_return")
@@ -170,6 +166,10 @@ def _account_summary(strategies: list[dict[str, Any]], accounts: list[Any], acco
             round(total_return - spy_total_return, 8) if spy_total_return is not None else None
         ),
         "max_drawdown": min((float(summary.get("max_drawdown") or 0.0) for summary in summaries), default=0.0),
+        "current_drawdown": min(
+            (float(summary.get("current_drawdown") or 0.0) for summary in summaries),
+            default=0.0,
+        ),
         "open_positions": sum(int(summary.get("open_positions") or 0) for summary in summaries),
         "trade_count": sum(int(summary.get("trade_count") or 0) for summary in summaries),
         "account_count": len(accounts),
@@ -237,48 +237,6 @@ def _net_aum_from_payload(payload: Any) -> float | None:
         "portfolio_value",
         "portfolioValue",
     )
-
-
-def _account_broker_pnl(account_assets: list[Any]) -> dict[str, float | None]:
-    daily_values: list[float] = []
-    unrealized_values: list[float] = []
-    for asset in account_assets:
-        payload = _asset_payload(asset)
-        if payload is None:
-            continue
-        daily = _first_float(
-            payload,
-            "total_day_profit_loss",
-            "totalDayProfitLoss",
-            "day_profit_loss",
-            "dayProfitLoss",
-        )
-        unrealized = _first_float(
-            payload,
-            "total_unrealized_profit_loss",
-            "totalUnrealizedProfitLoss",
-            "unrealized_profit_loss",
-            "unrealizedProfitLoss",
-        )
-        if daily is not None:
-            daily_values.append(daily)
-        if unrealized is not None:
-            unrealized_values.append(unrealized)
-    return {
-        "daily": sum(daily_values) if daily_values else None,
-        "unrealized": sum(unrealized_values) if unrealized_values else None,
-    }
-
-
-def _asset_payload(asset: Any) -> Any | None:
-    raw_json = asset["raw_json"] if "raw_json" in asset.keys() else None
-    if not raw_json:
-        return None
-    try:
-        payload = json.loads(raw_json)
-    except (TypeError, ValueError):
-        return None
-    return payload.get("payload", payload) if isinstance(payload, dict) else payload
 
 
 def _first_float(source: Any, *names: str) -> float | None:

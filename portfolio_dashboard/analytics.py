@@ -34,6 +34,7 @@ def build_performance(
     holdings = [_canonicalize_row_symbol(_row_dict(row)) for row in positions]
     fills = _extract_fills(orders)
     prices = _prices_by_date(price_rows)
+    _append_current_position_marks(prices, holdings)
     symbols = sorted({h["symbol"] for h in holdings} | {f.symbol for f in fills})
 
     mark_based = bool(rebalance_start_date and holdings)
@@ -46,10 +47,8 @@ def build_performance(
 
     marked_holdings = _holdings_with_marks(holdings, prices)
     daily = _daily_rows(equity_curve, return_on_exposure=mark_based)
-    if not mark_based:
-        daily = _apply_broker_latest_daily(daily, marked_holdings)
     risk_free_rates = risk_free_rates or {}
-    summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices, use_broker_pnl=not mark_based)
+    summary = _summary(daily, marked_holdings, fills, risk_free_rates, prices)
     if rebalance_start_date:
         summary["rebalance_start_date"] = str(rebalance_start_date)[:10]
         summary["rebalance_days"] = rebalance_days
@@ -90,6 +89,21 @@ def _prices_by_date(price_rows: list[Row | dict[str, Any]]) -> dict[str, dict[st
         if item.get("date") and item.get("symbol") and close is not None:
             prices[str(item["date"])[:10]][canonical_symbol(item["symbol"])] = close
     return dict(sorted(prices.items()))
+
+
+def _append_current_position_marks(
+    prices: dict[str, dict[str, float]],
+    holdings: list[dict[str, Any]],
+) -> None:
+    today = date.today().isoformat()
+    marks = prices.setdefault(today, {})
+    for holding in holdings:
+        symbol = holding.get("symbol")
+        if not symbol:
+            continue
+        mark = _position_mark(holding)
+        if mark is not None:
+            marks[canonical_symbol(symbol)] = mark
 
 
 def _equity_from_fills(
@@ -143,11 +157,7 @@ def _equity_from_rebalance_holdings(
     rebalance_start_date: str,
 ) -> list[tuple[str, float, float, float, float]]:
     quantities = {row["symbol"]: _float(row.get("quantity")) or 0.0 for row in holdings}
-    baseline_marks = {
-        row["symbol"]: _float(row.get("avg_price"))
-        for row in holdings
-        if _float(row.get("avg_price")) is not None
-    }
+    baseline_marks = _cost_basis_marks(holdings)
     symbols = sorted(quantities)
     curve: list[tuple[str, float, float, float, float]] = []
     last_marks: dict[str, float] = {}
@@ -155,7 +165,10 @@ def _equity_from_rebalance_holdings(
         if day < rebalance_start_date:
             continue
         last_marks.update(marks)
-        day_marks = {symbol: last_marks.get(symbol, baseline_marks.get(symbol)) for symbol in symbols}
+        if day == rebalance_start_date:
+            day_marks = {symbol: baseline_marks.get(symbol, last_marks.get(symbol)) for symbol in symbols}
+        else:
+            day_marks = {symbol: last_marks.get(symbol, baseline_marks.get(symbol)) for symbol in symbols}
         if any(mark is None for mark in day_marks.values()):
             continue
         market_values = [quantities[symbol] * float(day_marks[symbol]) for symbol in symbols]
@@ -164,6 +177,21 @@ def _equity_from_rebalance_holdings(
         short_value = sum(market_value for market_value in market_values if market_value < 0)
         curve.append((day, value, sum(abs(market_value) for market_value in market_values), long_value, short_value))
     return curve
+
+
+def _cost_basis_marks(holdings: list[dict[str, Any]]) -> dict[str, float]:
+    marks: dict[str, float] = {}
+    for holding in holdings:
+        symbol = holding.get("symbol")
+        qty = _float(holding.get("quantity")) or 0.0
+        cost = _position_cost(holding)
+        if symbol and qty != 0 and cost is not None:
+            marks[symbol] = cost / qty
+            continue
+        avg_price = _float(holding.get("avg_price"))
+        if symbol and avg_price is not None:
+            marks[symbol] = avg_price
+    return marks
 
 
 def _daily_rows(
@@ -209,79 +237,26 @@ def _daily_rows(
     return rows
 
 
-def _apply_broker_latest_daily(
-    daily: list[dict[str, float | str]],
-    holdings: list[dict[str, Any]],
-) -> list[dict[str, float | str]]:
-    if not daily:
-        return daily
-
-    broker_daily_pnl = _sum_first_floats(
-        holdings,
-        "day_profit_loss",
-        "dayProfitLoss",
-        "day_pnl",
-        "dayPnl",
-        "today_profit_loss",
-        "todayProfitLoss",
-    )
-    broker_unrealized_pnl = _sum_first_floats(
-        holdings,
-        "unrealized_profit_loss",
-        "unrealizedProfitLoss",
-        "unrealized_pnl",
-        "unrealizedPnl",
-    )
-    if broker_daily_pnl is None and broker_unrealized_pnl is None:
-        return daily
-
-    gross_exposure = sum(abs(float(row.get("market_value") or 0.0)) for row in holdings)
-    latest = dict(daily[-1])
-    if broker_unrealized_pnl is not None:
-        latest["equity"] = round(broker_unrealized_pnl, 4)
-    if broker_daily_pnl is not None:
-        latest["daily_pnl"] = round(broker_daily_pnl, 4)
-        latest["daily_return"] = round(_exposure_return(broker_daily_pnl, gross_exposure), 8)
-
-    return [*daily[:-1], latest]
-
-
 def _summary(
     daily: list[dict[str, Any]],
     holdings: list[dict[str, Any]],
     fills: list[Fill],
     risk_free_rates: dict[str, float],
     prices: dict[str, dict[str, float]],
-    use_broker_pnl: bool = True,
 ) -> dict[str, Any]:
     excess_returns = _daily_excess_returns(daily, risk_free_rates)
     synthetic_latest_equity = float(daily[-1]["equity"]) if daily else 0.0
     start_equity = float(daily[0]["equity"]) if daily else 0.0
     max_drawdown = min((float(row["drawdown"]) for row in daily), default=0.0)
+    current_drawdown = float(daily[-1]["drawdown"]) if daily else 0.0
     latest_rf = latest_rate_on_or_before(risk_free_rates, str(daily[-1]["date"])) if daily else None
     net_exposure = sum(float(row.get("market_value") or 0.0) for row in holdings)
     gross_exposure = sum(abs(float(row.get("market_value") or 0.0)) for row in holdings)
     synthetic_total_pnl = synthetic_latest_equity - start_equity if daily else 0.0
     synthetic_daily_pnl = float(daily[-1]["daily_pnl"]) if daily else 0.0
-    broker_unrealized_pnl = _sum_first_floats(
-        holdings,
-        "unrealized_profit_loss",
-        "unrealizedProfitLoss",
-        "unrealized_pnl",
-        "unrealizedPnl",
-    )
-    broker_daily_pnl = _sum_first_floats(
-        holdings,
-        "day_profit_loss",
-        "dayProfitLoss",
-        "day_pnl",
-        "dayPnl",
-        "today_profit_loss",
-        "todayProfitLoss",
-    )
-    latest_equity = broker_unrealized_pnl if use_broker_pnl and broker_unrealized_pnl is not None else synthetic_latest_equity
-    total_pnl = broker_unrealized_pnl if broker_unrealized_pnl is not None else synthetic_total_pnl
-    daily_pnl = broker_daily_pnl if use_broker_pnl and broker_daily_pnl is not None else synthetic_daily_pnl
+    latest_equity = synthetic_latest_equity
+    total_pnl = synthetic_total_pnl
+    daily_pnl = synthetic_daily_pnl
     daily_return = _exposure_return(daily_pnl, gross_exposure)
     total_return = _exposure_return(total_pnl, gross_exposure)
     latest_date = str(daily[-1]["date"]) if daily else None
@@ -308,6 +283,7 @@ def _summary(
             round(total_return - spy_total_return, 8) if spy_total_return is not None else None
         ),
         "max_drawdown": round(max_drawdown, 6),
+        "current_drawdown": round(current_drawdown, 6),
         "sharpe": round(_sharpe(excess_returns), 4),
         "risk_free_rate": round(latest_rf, 6) if latest_rf is not None else None,
         "open_positions": len(holdings),
@@ -420,23 +396,41 @@ def _holdings_with_marks(
     return output
 
 
+def _position_mark(holding: dict[str, Any]) -> float | None:
+    mark = _first_float(
+        holding,
+        "last_price",
+        "lastPrice",
+        "mark_price",
+        "markPrice",
+        "current_price",
+        "currentPrice",
+    )
+    if mark is not None:
+        return mark
+    market_value = _first_float(holding, "market_value", "marketValue", "positionMarketValue")
+    qty = _float(holding.get("quantity")) or 0.0
+    if market_value is not None and qty != 0:
+        return market_value / qty
+    return None
+
+
+def _position_cost(holding: dict[str, Any]) -> float | None:
+    cost = _first_float(holding, "cost", "total_cost", "totalCost", "cost_basis", "costBasis")
+    if cost is not None:
+        return cost
+    qty = _float(holding.get("quantity")) or 0.0
+    avg_price = _float(holding.get("avg_price"))
+    if avg_price is not None:
+        return qty * avg_price
+    return None
+
+
 def _holding_return(quantity: float, avg_price: float | None, mark: float) -> float | None:
     if avg_price in (None, 0.0):
         return None
     direction = 1 if quantity >= 0 else -1
     return round(((mark - avg_price) / abs(avg_price)) * direction, 8)
-
-
-def _sum_first_floats(rows: list[dict[str, Any]], *names: str) -> float | None:
-    total = 0.0
-    found = False
-    for row in rows:
-        value = _first_float(row, *names)
-        if value is None:
-            continue
-        total += value
-        found = True
-    return total if found else None
 
 
 def _first_float(source: Any, *names: str) -> float | None:

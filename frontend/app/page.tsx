@@ -16,6 +16,7 @@ type Summary = {
   daily_return_over_spy: number | null;
   total_return_over_spy: number | null;
   max_drawdown: number;
+  current_drawdown: number;
   sharpe: number;
   risk_free_rate: number | null;
   open_positions: number;
@@ -39,6 +40,7 @@ type AccountSummary = {
   daily_return_over_spy: number | null;
   total_return_over_spy: number | null;
   max_drawdown: number;
+  current_drawdown: number;
   open_positions: number;
   trade_count: number;
   history_start: string | null;
@@ -220,7 +222,7 @@ function HomeTab({ account, strategies }: { account: AccountSummary; strategies:
           positive={(account.total_return_over_spy || 0) > 0}
           negative={(account.total_return_over_spy || 0) < 0}
         />
-        <Metric label="Max Drawdown" value={percent(account.max_drawdown)} />
+        <Metric label="Current Drawdown" value={percent(account.current_drawdown)} />
         <Metric label="Accounts" value={String(account.account_count)} />
         <Metric label="Open Positions" value={String(account.open_positions)} />
         <Metric label="Strategies" value={String(account.strategy_count)} />
@@ -257,7 +259,7 @@ function StrategyTab({ data }: { data: Performance }) {
           <div className="metrics support-metrics">
             <Metric label="Net Exposure" value={money(summary.net_exposure)} />
             <Metric label="Gross Exposure" value={money(summary.gross_exposure)} />
-            <Metric label="Max Drawdown" value={percent(summary.max_drawdown)} />
+            <Metric label="Current Drawdown" value={percent(summary.current_drawdown)} />
           </div>
         </section>
 

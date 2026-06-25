@@ -85,7 +85,7 @@ def test_ticker_change_alias_joins_sats_history_to_echo_position() -> None:
     assert result["summary"]["net_exposure"] == 12
 
 
-def test_broker_position_pnl_overrides_synthetic_summary_pnl() -> None:
+def test_broker_position_pnl_does_not_override_self_calculated_summary_pnl() -> None:
     result = build_performance(
         [
             {
@@ -112,9 +112,9 @@ def test_broker_position_pnl_overrides_synthetic_summary_pnl() -> None:
         ],
     )
 
-    assert result["summary"]["latest_equity"] == 5.5
-    assert result["summary"]["total_pnl"] == 5.5
-    assert result["summary"]["daily_pnl"] == 1.0
+    assert result["summary"]["latest_equity"] == 28
+    assert result["summary"]["total_pnl"] == 8
+    assert result["summary"]["daily_pnl"] == 8
 
 
 def test_rebalance_performance_uses_fixed_current_holdings_and_price_marks() -> None:
@@ -162,13 +162,14 @@ def test_rebalance_performance_uses_fixed_current_holdings_and_price_marks() -> 
     assert result["summary"]["next_rebalance_date"] == "2026-06-26"
 
 
-def test_rebalance_total_pnl_uses_broker_unrealized_when_available() -> None:
+def test_rebalance_total_pnl_uses_current_mark_and_cost_basis() -> None:
     result = build_performance(
         [
             {
                 "symbol": "AAA",
                 "quantity": 2,
                 "avg_price": 10,
+                "last_price": 22.625,
                 "unrealized_profit_loss": "25.25",
             },
         ],
@@ -180,8 +181,9 @@ def test_rebalance_total_pnl_uses_broker_unrealized_when_available() -> None:
         rebalance_start_date="2026-06-12",
     )
 
-    assert result["summary"]["latest_equity"] == 22
+    assert result["summary"]["latest_equity"] == 45.25
     assert result["summary"]["total_pnl"] == 25.25
+    assert result["summary"]["current_drawdown"] == 0
 
 
 def test_rebalance_performance_carries_forward_sparse_symbol_marks() -> None:
@@ -205,7 +207,7 @@ def test_rebalance_performance_carries_forward_sparse_symbol_marks() -> None:
     assert result["summary"]["history_end"] == "2026-06-14"
 
 
-def test_latest_daily_row_uses_broker_return_over_gross_exposure() -> None:
+def test_latest_daily_row_ignores_broker_pnl_fields() -> None:
     result = build_performance(
         [
             {
@@ -235,9 +237,9 @@ def test_latest_daily_row_uses_broker_return_over_gross_exposure() -> None:
     )
 
     latest = result["equity_curve"][-1]
-    assert latest["equity"] == 20
+    assert latest["equity"] == 12
     assert latest["daily_pnl"] == 10
-    assert latest["daily_return"] == 0.00090909
+    assert latest["daily_return"] == 5
 
 
 def test_daily_spy_comparison_requires_matching_benchmark_dates() -> None:
